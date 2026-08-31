@@ -115,6 +115,9 @@ src/
   worker/      index.ts (routes), auth.ts, spoonacular.ts, db.ts
   client/      App.tsx, api.ts, styles.css, components/
   shared/      types.ts  (shared between both)
+  client/sprites/  tilemap.png + derived seamless ground tiles
+art/           the raw Kenney download (not deployed)
+scripts/       screenshot.mjs, for eyeballing the UI
 schema.sql     tables + seed tags
 ```
 
@@ -125,9 +128,15 @@ schema.sql     tables + seed tags
   tier is 150 points/day; a search costs ~1.1, so roughly 130 searches a day.
 - **Wheel size is capped at 12 slices** — a wheel with 40 labels is unreadable.
   Candidates are resampled on every spin, so the full book still gets used.
-- **Art is hand-drawn SVG/CSS**, not sourced sprites (see the asset note in the
-  project discussion). Swapping in a Kenney CC0 pack is a contained change:
-  the garden lives in `components/Garden.tsx`, the wheel rim and pointer in
-  `components/Wheel.tsx`.
+- **Art** is Kenney's *Pixel Platformer* pack (CC0). The full download lives in
+  `art/pixel-platformer/` and is **not** served -- only the 6KB sprite sheet is
+  imported (`src/client/sprites/tilemap.png`), so Vite ships exactly one image.
+  `components/Sprite.tsx` addresses tiles by index in the 20x9 grid.
+  The two ground tiles are pre-processed: Kenney's terrain blocks carry a 2px
+  dark outline on all four sides, which tiles into a visible brick grid, so
+  `grass.png` and `dirt.png` have that border stripped (the grass keeps its top
+  edge, which is the ground surface line).
+  The wheel, pointer and sign are still drawn in SVG/CSS so they scale with
+  their text.
 - The hub photo is loaded from `/assets/loki.png`; if it's absent the wheel
   shows a placeholder medallion instead.

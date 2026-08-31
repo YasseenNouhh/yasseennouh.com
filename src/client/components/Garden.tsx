@@ -1,13 +1,39 @@
+import grass from "../sprites/grass.png";
+import dirt from "../sprites/dirt.png";
+import { Sprite, T } from "./Sprite";
+
 /**
- * Fixed scenery behind the app: sky, sun, drifting clouds and a pixel garden
- * strip along the bottom. Everything is drawn with rects so it stays crisp at
- * any zoom and costs no image requests.
+ * Fixed scenery behind the app, built from the Kenney "Pixel Platformer" set
+ * (CC0). The ground tiles repeat via CSS -- their block outlines were stripped
+ * so they meet seamlessly instead of reading as a brick grid.
  */
 
+const GROUND_H = 196;
+const GRASS_H = 72;
+
 const CLOUDS = [
-  { top: "12%", w: 92, h: 22, dur: 78, delay: 0 },
-  { top: "22%", w: 132, h: 26, dur: 108, delay: -30 },
-  { top: "34%", w: 74, h: 18, dur: 92, delay: -62 },
+  { tile: T.cloudWide, top: "8%", scale: 5, dur: 104, delay: 0 },
+  { tile: T.cloudPuff, top: "19%", scale: 4, dur: 141, delay: -45 },
+  { tile: T.cloudSmall, top: "30%", scale: 3, dur: 118, delay: -82 },
+];
+
+/** Deterministic so the garden doesn't reshuffle on every render. */
+const PLANTS: { at: number; tile: number; scale: number }[] = [
+  { at: 2, tile: T.pine, scale: 4 },
+  { at: 9, tile: T.shrub, scale: 3 },
+  { at: 15, tile: T.tree, scale: 4 },
+  { at: 22, tile: T.plant, scale: 3 },
+  { at: 28, tile: T.mushroom, scale: 2 },
+  { at: 34, tile: T.foliage, scale: 3 },
+  { at: 42, tile: T.pine, scale: 3 },
+  { at: 50, tile: T.shrub, scale: 4 },
+  { at: 57, tile: T.plant, scale: 3 },
+  { at: 63, tile: T.foliageTall, scale: 3 },
+  { at: 70, tile: T.tree, scale: 4 },
+  { at: 77, tile: T.mushroom, scale: 2 },
+  { at: 84, tile: T.shrub, scale: 3 },
+  { at: 91, tile: T.pine, scale: 4 },
+  { at: 97, tile: T.plant, scale: 3 },
 ];
 
 export function Garden() {
@@ -16,67 +42,38 @@ export function Garden() {
       <div className="sun" />
 
       {CLOUDS.map((c, i) => (
-        <div
+        <Sprite
           key={i}
-          className="cloud"
+          tile={c.tile}
+          scale={c.scale}
+          className="cloud-sprite"
           style={{
             top: c.top,
-            width: c.w,
-            height: c.h,
             animationDuration: `${c.dur}s`,
             animationDelay: `${c.delay}s`,
           }}
         />
       ))}
 
-      <svg viewBox="0 0 320 90" preserveAspectRatio="none" style={{ height: "26vh" }}>
-        {/* rolling hills */}
-        <path d="M0 34h40v-6h48v6h56v-8h60v8h52v-5h64v66H0z" fill="#a5c46b" />
-        <path d="M0 46h72v-4h68v4h58v-6h58v6h64v50H0z" fill="#7a9a4e" />
-        <rect x="0" y="62" width="320" height="28" fill="#4c6b32" />
-        <rect x="0" y="78" width="320" height="12" fill="#6b4a2c" />
-      </svg>
-
-      <svg viewBox="0 0 320 60" preserveAspectRatio="xMidYMax slice" style={{ height: "13vh" }}>
-        {/* picket fence */}
-        {Array.from({ length: 22 }, (_, i) => (
-          <g key={i} transform={`translate(${i * 15}, 0)`}>
-            <rect x="2" y="14" width="8" height="46" fill="#b3835a" />
-            <rect x="2" y="14" width="3" height="46" fill="#c9a077" />
-            <rect x="2" y="10" width="8" height="4" fill="#8b5e3c" />
-            <rect x="5" y="6" width="2" height="4" fill="#8b5e3c" />
-          </g>
+      <div className="ground" style={{ height: GROUND_H }}>
+        {PLANTS.map((p, i) => (
+          <Sprite
+            key={i}
+            tile={p.tile}
+            scale={p.scale}
+            style={{ position: "absolute", left: `${p.at}%`, bottom: GROUND_H - 10 }}
+          />
         ))}
-        <rect x="0" y="24" width="320" height="6" fill="#8b5e3c" />
-        <rect x="0" y="42" width="320" height="6" fill="#8b5e3c" />
 
-        {/* vegetables and flowers poking through */}
-        {[14, 58, 103, 149, 196, 241, 287].map((x, i) => (
-          <g key={x} transform={`translate(${x}, 30)`}>
-            {i % 3 === 0 ? (
-              <>
-                <rect x="4" y="10" width="4" height="14" fill="#4c6b32" />
-                <rect x="0" y="4" width="12" height="8" fill="#c4614f" />
-                <rect x="2" y="2" width="8" height="4" fill="#e8875f" />
-              </>
-            ) : i % 3 === 1 ? (
-              <>
-                <rect x="5" y="8" width="3" height="18" fill="#4c6b32" />
-                <rect x="0" y="2" width="4" height="4" fill="#e8b04b" />
-                <rect x="9" y="2" width="4" height="4" fill="#e8b04b" />
-                <rect x="4" y="0" width="5" height="8" fill="#f2d06b" />
-                <rect x="4" y="8" width="5" height="4" fill="#e8b04b" />
-              </>
-            ) : (
-              <>
-                <rect x="2" y="6" width="10" height="8" fill="#7a9a4e" />
-                <rect x="0" y="10" width="14" height="8" fill="#4c6b32" />
-                <rect x="5" y="18" width="4" height="8" fill="#6b4a2c" />
-              </>
-            )}
-          </g>
-        ))}
-      </svg>
+        <div
+          className="ground__grass"
+          style={{ backgroundImage: `url(${grass})`, height: GRASS_H }}
+        />
+        <div
+          className="ground__dirt"
+          style={{ backgroundImage: `url(${dirt})`, top: GRASS_H }}
+        />
+      </div>
     </div>
   );
 }

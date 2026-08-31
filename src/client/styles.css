@@ -118,9 +118,11 @@ h3 {
 }
 
 .shell {
+  position: relative;
+  z-index: 1;
   width: min(1100px, 100%);
   margin: 0 auto;
-  padding: 24px 16px 140px;
+  padding: 24px 16px 220px;
   flex: 1;
 }
 
@@ -716,40 +718,36 @@ textarea.input {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 62%, #e9c98f 100%);
-}
-
-.garden svg {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: auto;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 58%, #f0d5a0 100%);
 }
 
 .sun {
   position: absolute;
-  top: 6%;
-  right: 9%;
-  width: 74px;
-  height: 74px;
+  top: 7%;
+  right: 10%;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
   background: var(--gold);
-  border: var(--px) solid #d09330;
-  box-shadow: 0 0 0 10px rgba(232, 176, 75, 0.28);
-  animation: bob 6s steps(6) infinite alternate;
+  box-shadow:
+    0 0 0 6px #f2c76b,
+    0 0 0 16px rgba(232, 176, 75, 0.3);
+  animation: bob 7s steps(7) infinite alternate;
 }
 
 @keyframes bob {
   to {
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
 }
 
-.cloud {
+.cloud-sprite {
   position: absolute;
-  background: rgba(255, 255, 255, 0.85);
-  border: var(--px) solid rgba(255, 255, 255, 0.95);
-  animation: drift linear infinite;
+  opacity: 0.9;
+  animation-name: drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 @keyframes drift {
@@ -761,9 +759,39 @@ textarea.input {
   }
 }
 
+/* Ground: repeating 18px tiles, crisp at any width. */
+.ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.ground__grass {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  background-repeat: repeat-x;
+  background-size: 72px 72px;
+  image-rendering: pixelated;
+}
+
+.ground__dirt {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-repeat: repeat;
+  background-size: 72px 72px;
+  image-rendering: pixelated;
+}
+
 /* --------------------------------------------------------------- footer */
 
 .footer {
+  position: relative;
+  z-index: 1;
   text-align: center;
   padding: 20px;
   font-size: 17px;
@@ -772,6 +800,12 @@ textarea.input {
 
 .footer a {
   color: var(--terracotta-dark);
+}
+
+.footer__credit {
+  margin-top: 4px;
+  font-size: 15px;
+  opacity: 0.75;
 }
 
 /* ------------------------------------------------------------ utilities */

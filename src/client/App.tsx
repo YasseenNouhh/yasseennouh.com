@@ -302,6 +302,13 @@ export function App() {
             cook's entrance
           </button>
         )}
+        <div className="footer__credit">
+          art by{" "}
+          <a href="https://kenney.nl" target="_blank" rel="noreferrer noopener">
+            Kenney
+          </a>{" "}
+          (CC0)
+        </div>
       </footer>
 
       {openRecipe && (
