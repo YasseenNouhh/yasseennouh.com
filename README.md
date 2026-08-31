@@ -129,5 +129,5 @@ schema.sql     tables + seed tags
   project discussion). Swapping in a Kenney CC0 pack is a contained change:
   the garden lives in `components/Garden.tsx`, the wheel rim and pointer in
   `components/Wheel.tsx`.
-- The hub photo is loaded from `/assets/loki.jpg`; if it's absent the wheel
+- The hub photo is loaded from `/assets/loki.png`; if it's absent the wheel
   shows a placeholder medallion instead.
