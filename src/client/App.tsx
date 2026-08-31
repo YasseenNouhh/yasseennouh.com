@@ -9,7 +9,7 @@ import { Pantry } from "./components/Pantry";
 import { HistoryView } from "./components/HistoryView";
 import { LoadingScreen } from "./components/LoadingScreen";
 
-const HUB_IMAGE = "/assets/loki.jpg";
+const HUB_IMAGE = "/assets/loki.png";
 const COOLDOWN_DAYS = 14;
 
 type View = "spin" | "pantry" | "log";
