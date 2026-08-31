@@ -50,6 +50,29 @@ and enter the `DEV_ADMIN_KEY` value.
 For hot-reloading the UI, run `npx vite` alongside `wrangler dev` — Vite proxies
 `/api` to port 8787.
 
+## Testing
+
+Both suites run against a live `wrangler dev`, so they exercise the real Worker
+and the real local D1 -- no mocks.
+
+```bash
+npm run dev:server     # terminal 1: builds the client, serves on :8787
+npm test               # terminal 2: API tests, then browser tests
+```
+
+- `npm run test:api` (vitest, 22 tests) -- auth on every admin route, recipe
+  CRUD, duplicate rejection, tag creation and replacement, cascade delete,
+  cooldown behaviour including the small-pool relaxation, history, stats, and
+  JSON 404s for unknown API paths.
+- `npm run test:ui` (Playwright/Chromium, 11 tests) -- boot and loading screen,
+  the hub photo, spinning (asserting the announced dish **is** the slice under
+  the pointer), spin-again, COOK IT with the shopping list, the unlock dialog
+  with a wrong and a right key, add-a-recipe end to end through Spoonacular,
+  tag filtering, and every tab rendering. Any uncaught page error fails the test.
+
+Search tests skip themselves rather than fail if the daily Spoonacular quota is
+exhausted, since that is not a code failure.
+
 ## Deploying
 
 ```bash
