@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Recipe, SpinCandidate, Tag } from "../shared/types";
-import { api, ApiError, getAdminKey, setAdminKey } from "./api";
+import { api, ApiError, setAdminKey } from "./api";
 import { Garden } from "./components/Garden";
 import { Wheel } from "./components/Wheel";
 import { RecipeModal } from "./components/RecipeModal";
@@ -8,6 +8,7 @@ import { AddRecipeDialog } from "./components/AddRecipeDialog";
 import { Pantry } from "./components/Pantry";
 import { HistoryView } from "./components/HistoryView";
 import { LoadingScreen } from "./components/LoadingScreen";
+import { UnlockDialog } from "./components/UnlockDialog";
 
 const HUB_IMAGE = "/assets/loki.png";
 const COOLDOWN_DAYS = 14;
@@ -31,6 +32,7 @@ export function App() {
 
   const [openRecipe, setOpenRecipe] = useState<Recipe | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,20 +133,10 @@ export function App() {
     setOpenRecipe(recipe);
   }
 
-  function promptForKey() {
-    const key = prompt("Kitchen key:", getAdminKey());
-    if (key === null) return;
-    setAdminKey(key.trim());
-    api
-      .checkAdmin()
-      .then(() => {
-        setIsAdmin(true);
-        setError(null);
-      })
-      .catch(() => {
-        setIsAdmin(false);
-        setError("That key doesn't fit the lock.");
-      });
+  /** The add button is always visible; unlocking is just a step on the way. */
+  function requestAdd() {
+    if (isAdmin) setShowAdd(true);
+    else setShowUnlock(true);
   }
 
   if (!booted) {
@@ -230,15 +222,13 @@ export function App() {
                     ? "The recipe book is empty. Add a few dishes first."
                     : `No recipes match "${activeTag}" yet.`}
                 </p>
-                {isAdmin && (
-                  <button
-                    className="btn btn--primary"
-                    style={{ marginTop: 14 }}
-                    onClick={() => setShowAdd(true)}
-                  >
-                    + ADD RECIPE
-                  </button>
-                )}
+                <button
+                  className="btn btn--primary"
+                  style={{ marginTop: 14 }}
+                  onClick={requestAdd}
+                >
+                  + ADD RECIPE
+                </button>
               </div>
             ) : (
               <>
@@ -287,7 +277,7 @@ export function App() {
             onTag={setActiveTag}
             onOpen={setOpenRecipe}
             isAdmin={isAdmin}
-            onAdd={() => setShowAdd(true)}
+            onAdd={requestAdd}
           />
         )}
 
@@ -297,9 +287,21 @@ export function App() {
       </div>
 
       <footer className="footer">
-        <button className="btn btn--ghost" onClick={promptForKey}>
-          {isAdmin ? "kitchen unlocked" : "cook's entrance"}
-        </button>
+        {isAdmin ? (
+          <button
+            className="btn btn--ghost"
+            onClick={() => {
+              setAdminKey("");
+              setIsAdmin(false);
+            }}
+          >
+            kitchen unlocked — lock it
+          </button>
+        ) : (
+          <button className="btn btn--ghost" onClick={() => setShowUnlock(true)}>
+            cook's entrance
+          </button>
+        )}
       </footer>
 
       {openRecipe && (
@@ -308,6 +310,16 @@ export function App() {
           isAdmin={isAdmin}
           onClose={() => setOpenRecipe(null)}
           onChanged={() => setRefreshToken((t) => t + 1)}
+        />
+      )}
+
+      {showUnlock && (
+        <UnlockDialog
+          onClose={() => setShowUnlock(false)}
+          onUnlocked={() => {
+            setIsAdmin(true);
+            setShowAdd(true);
+          }}
         />
       )}
 

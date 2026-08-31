@@ -8,7 +8,11 @@
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "db:local": "wrangler d1 execute lokis-kitchen --local --file=./schema.sql",
-    "db:remote": "wrangler d1 execute lokis-kitchen --remote --file=./schema.sql"
+    "db:remote": "wrangler d1 execute lokis-kitchen --remote --file=./schema.sql",
+    "dev:server": "vite build && wrangler dev --port 8787",
+    "test": "npm run test:api && npm run test:ui",
+    "test:api": "vitest run",
+    "test:ui": "playwright test"
   },
   "dependencies": {
     "hono": "^4.6.14",
@@ -17,11 +21,13 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260828.1",
+    "@playwright/test": "^1.62.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
+    "vitest": "^2.1.9",
     "wrangler": "^4.127.1"
   }
 }

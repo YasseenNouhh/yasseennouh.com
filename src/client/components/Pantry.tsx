@@ -46,11 +46,9 @@ export function Pantry({ recipes, tags, activeTag, onTag, onOpen, isAdmin, onAdd
               CARDS
             </button>
           </div>
-          {isAdmin && (
-            <button className="btn btn--primary" onClick={onAdd}>
-              + ADD
-            </button>
-          )}
+          <button className="btn btn--primary" onClick={onAdd}>
+            + ADD
+          </button>
         </div>
       </div>
 
