@@ -57,6 +57,7 @@ export const G = {
   tree: [
     [17, 18, 19],
     [57, 58, 59],
+    [null, 97, null],
     [null, 117, null],
     [null, 137, null],
   ],
@@ -64,20 +65,24 @@ export const G = {
     [17, 18, 19],
     [37, 38, 39],
     [57, 58, 59],
+    [null, 97, null],
     [null, 117, null],
     [null, 137, null],
   ],
-  /** Farm: wide autumn birch -- branch caps over a solid canopy row, fork, trunk. */
+  /** Farm: autumn birch, two tiles wide. 74/78 are branch caps, 76/79 the
+   *  canopy-to-trunk transition row, 93/109 the trunk column. */
   autumnBigTree: [
-    [74, 77, 78],
-    [null, 76, null],
-    [null, 109, null],
+    [74, 78],
+    [76, 79],
+    [null, 93],
+    [null, 109],
   ],
-  /** Farm: compact autumn birch. Top is 76 (foliage with the trunk fork at the
-   *  bottom) -- not 77, which is a solid 2x2 canopy interior and reads as a
-   *  floating orange block when used alone. Trunk is 109, not 93 -- 93 has
-   *  side-branch nubs meant for wider assemblies; 109 lines up cleanly below 76. */
-  autumnTree: [[76], [109]],
+  /** Farm: shorter autumn birch -- same width, one fewer trunk segment. */
+  autumnTree: [
+    [74, 78],
+    [76, 79],
+    [null, 109],
+  ],
   /** Low wide hedge. */
   lowHedge: [[77, 78, 79]],
   /** Three-tile-wide cloud. */
