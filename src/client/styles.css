@@ -317,8 +317,8 @@ h3 {
 }
 
 .wheel-rotor {
-  transform-origin: 50% 50%;
-  transform-box: view-box;
+  /* Parent <g> is translated to the disc centre; rotate around that origin. */
+  transform-origin: 0 0;
   /* Promotes the rotor to its own compositor layer up front, instead of only
      when the animation starts -- avoids a layer-promotion hitch on the very
      first spin. */
@@ -328,6 +328,9 @@ h3 {
 /* The hub never rotates — Loki stays upright while dinner spins. */
 .hub {
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 27%;
   aspect-ratio: 1;
   border-radius: 50%;

@@ -78,7 +78,7 @@ test("spinning lands on the slice under the pointer and logs it", async ({ page 
 
   // Restrict the wheel to our own recipes so the assertion is deterministic.
   await page.getByRole("button", { name: "spintest", exact: true }).click();
-  await expect(page.locator(".wheel-rotor > g")).toHaveCount(5);
+  await expect(page.locator(".wheel-slices > g")).toHaveCount(5);
 
   await page.getByRole("button", { name: "SPIN!" }).click();
   await expect(page.locator(".result__title")).toBeVisible({ timeout: 15_000 });
@@ -87,7 +87,7 @@ test("spinning lands on the slice under the pointer and logs it", async ({ page 
 
   // The label under the pointer must be the dish we were told we're eating.
   const underPointer = await page.evaluate(() => {
-    const labels = [...document.querySelectorAll(".wheel-rotor > g text")].map(
+    const labels = [...document.querySelectorAll(".wheel-slices > g text")].map(
       (t) => t.textContent ?? "",
     );
     const rot = parseFloat(
@@ -285,7 +285,7 @@ test("wheel labels stay clear of the rim, even with a very long title", async ({
   await page.goto(BASE);
   await page.locator(".wheel-svg").waitFor({ timeout: 10_000 });
   await page.getByRole("button", { name: "rimtest", exact: true }).click();
-  await expect(page.locator(".wheel-rotor > g")).toHaveCount(6);
+  await expect(page.locator(".wheel-slices > g")).toHaveCount(6);
 
   // The structural guarantee: a hard clip on the disc. This must never be
   // removed even if the sizing math above it is ever touched again.
@@ -337,11 +337,11 @@ test("tag filtering changes the wheel", async ({ page }) => {
   await page.locator(".wheel-svg").waitFor({ timeout: 10_000 });
 
   await page.getByRole("button", { name: "filtera", exact: true }).click();
-  await expect(page.locator(".wheel-rotor > g")).toHaveCount(1);
+  await expect(page.locator(".wheel-slices > g")).toHaveCount(1);
   await expect(page.locator(".wheel-rotor text")).toContainText("Filter");
 
   await page.getByRole("button", { name: "filterb", exact: true }).click();
-  await expect(page.locator(".wheel-rotor > g")).toHaveCount(1);
+  await expect(page.locator(".wheel-slices > g")).toHaveCount(1);
 
   await deleteRecipe(a);
   await deleteRecipe(b);

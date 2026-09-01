@@ -143,57 +143,65 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
         <circle cx={CX} cy={CY} r={R + 9} fill="#5c3a21" />
         <circle cx={CX} cy={CY} r={R + 5} fill="#8b5e3c" />
 
-        <g
-          className="wheel-rotor"
-          clipPath="url(#wheel-disc)"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: spinning
-              ? `transform ${SPIN_MS}ms cubic-bezier(0.16, 0.84, 0.14, 1)`
-              : "none",
-          }}
-        >
-          {candidates.map((c, i) => {
-            const start = i * step;
-            const end = start + step;
-            const mid = start + step / 2;
-            const [tx, ty] = point(mid, anchorR);
-            const flip = mid > 180;
+        {/* Pivot at the disc centre so CSS rotation never tracks the rotor's
+            content bounding box (asymmetric labels were shifting the axis). */}
+        <g transform={`translate(${CX} ${CY})`}>
+          <g
+            className="wheel-rotor"
+            clipPath="url(#wheel-disc)"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transition: spinning
+                ? `transform ${SPIN_MS}ms cubic-bezier(0.16, 0.84, 0.14, 1)`
+                : "none",
+            }}
+          >
+            <g className="wheel-slices" transform={`translate(${-CX} ${-CY})`}>
+              {candidates.map((c, i) => {
+                const start = i * step;
+                const end = start + step;
+                const mid = start + step / 2;
+                const [tx, ty] = point(mid, anchorR);
+                const flip = mid > 180;
 
-            return (
-              <g key={c.id}>
-                <path
-                  d={slicePath(start, end)}
-                  fill={SLICE_COLORS[i % SLICE_COLORS.length]}
-                  stroke="#3b2416"
-                  strokeWidth={3}
-                />
-                <text
-                  x={tx}
-                  y={ty}
-                  fill="#f7e7c6"
-                  fontFamily="'Press Start 2P', monospace"
-                  fontSize={labelSize}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  transform={`rotate(${flip ? mid + 90 : mid - 90} ${tx} ${ty})`}
-                  style={{ paintOrder: "stroke", stroke: "#3b2416", strokeWidth: 5 }}
-                >
-                  {wrapLabel(c.title, labelChars).map((line, li, arr) => (
-                    <tspan
-                      key={li}
+                return (
+                  <g key={c.id}>
+                    <path
+                      d={slicePath(start, end)}
+                      fill={SLICE_COLORS[i % SLICE_COLORS.length]}
+                      stroke="#3b2416"
+                      strokeWidth={3}
+                    />
+                    <text
                       x={tx}
-                      dy={li === 0 ? -((arr.length - 1) * labelSize * 0.6) : labelSize * 1.2}
+                      y={ty}
+                      fill="#f7e7c6"
+                      fontFamily="'Press Start 2P', monospace"
+                      fontSize={labelSize}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      transform={`rotate(${flip ? mid + 90 : mid - 90} ${tx} ${ty})`}
+                      style={{ paintOrder: "stroke", stroke: "#3b2416", strokeWidth: 5 }}
                     >
-                      {line}
-                    </tspan>
-                  ))}
-                </text>
-              </g>
-            );
-          })}
+                      {wrapLabel(c.title, labelChars).map((line, li, arr) => (
+                        <tspan
+                          key={li}
+                          x={tx}
+                          dy={li === 0 ? -((arr.length - 1) * labelSize * 0.6) : labelSize * 1.2}
+                        >
+                          {line}
+                        </tspan>
+                      ))}
+                    </text>
+                  </g>
+                );
+              })}
 
-          {n === 0 && <circle cx={CX} cy={CY} r={R} fill="#ddc294" stroke="#3b2416" strokeWidth={3} />}
+              {n === 0 && (
+                <circle cx={CX} cy={CY} r={R} fill="#ddc294" stroke="#3b2416" strokeWidth={3} />
+              )}
+            </g>
+          </g>
         </g>
       </svg>
 
