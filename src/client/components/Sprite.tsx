@@ -1,24 +1,32 @@
 import type { CSSProperties } from "react";
-import sheet from "../sprites/tilemap.png";
+import baseSheet from "../sprites/tilemap.png";
+import farmSheet from "../sprites/farm.png";
 
 /**
- * Tiles from the Kenney "Pixel Platformer" sheet (CC0), addressed by index in
- * the 20x9 grid. Drawn with background-position so the whole set costs one
- * 6KB request.
+ * Tiles from Kenney's Pixel Platformer (CC0) and its Farm Expansion, addressed
+ * by index in each sheet's grid. Two images total, ~11KB.
  *
- * Many of Kenney's objects span several tiles -- a cloud is three tiles wide,
- * a tree three tall, a hedge up to 3x3. Use `Composite` for those; rendering a
- * single tile of a multi-tile object is what makes sprites look sliced.
+ * Most of Kenney's scenery is a MULTI-TILE STRUCTURE -- a tree is a canopy
+ * block over a trunk column, a greenhouse is 4x4, a cloud is three tiles wide.
+ * Rendering one tile of those is what makes sprites look sliced through, so
+ * anything in `G` must go through `Composite`, never `Sprite`.
  */
 
 const TILE = 18;
-const COLS = 20;
-const ROWS = 9;
 
-/** Single-tile objects, verified against the sheet. */
+export const SHEETS = {
+  base: { url: baseSheet, cols: 20, rows: 9 },
+  farm: { url: farmSheet, cols: 16, rows: 7 },
+} as const;
+
+export type SheetName = keyof typeof SHEETS;
+
+/** Single-tile objects. Everything here is a complete thing on its own. */
 export const T = {
+  // base pack
   grass: 1,
   dirt: 120,
+  bush: 16,
   shrub: 124,
   plant: 125,
   pine: 126,
@@ -26,38 +34,75 @@ export const T = {
   smallCloud: 156,
   heart: 44,
   coin: 151,
+  // farm expansion
+  pumpkin: 4,
+  jackOLantern: 5,
+  hayRoll: 10,
+  hayBale: 11,
+  hayRound: 12,
+  carrot: 56,
+  tomatoes: 57,
+  wheat: 58,
+  corn: 59,
+  sprout: 104,
+  leafyPlant: 73,
 } as const;
 
-/** Multi-tile objects, as [row][col] grids. */
+/**
+ * Multi-tile structures as [row][col] grids. `null` leaves a gap, which is how
+ * the greenhouse gable and the tree trunks are centred.
+ */
 export const G = {
-  /** Full leafy tree: canopy, trunk, base. */
-  tree: [[97], [117], [137]],
-  /** Bare tree with leaf clumps. */
-  bareTree: [[96], [116], [136]],
-  /** Three-tile-wide cloud. */
-  cloud: [[153, 154, 155]],
-  /** Vertical hedge column: cap and base. */
-  hedge: [[16], [76]],
-  /** Tall hedge column. */
-  hedgeTall: [[16], [36], [76]],
-  /** Wide hedge block. */
-  hedgeBlock: [
+  /** Canopy block over a centred trunk -- the canopy rows tile seamlessly. */
+  tree: [
     [17, 18, 19],
     [57, 58, 59],
+    [null, 117, null],
+    [null, 137, null],
   ],
+  bigTree: [
+    [17, 18, 19],
+    [37, 38, 39],
+    [57, 58, 59],
+    [null, 117, null],
+    [null, 137, null],
+  ],
+  /** Low wide hedge. */
+  lowHedge: [[77, 78, 79]],
+  /** Farm: compact autumn birch. Its canopy tile has the trunk fork drawn in,
+   *  so it reads as a tree at one tile wide -- the wider canopy bars above it
+   *  on the sheet are standalone strips and don't stack. */
+  autumnTree: [[77], [93], [109]],
+  /** Three-tile-wide cloud. */
+  cloud: [[153, 154, 155]],
+  /** Farm: gabled greenhouse with a door, 4x4. */
+  greenhouse: [
+    [null, 52, 53, null],
+    [68, 69, 70, 71],
+    [84, 85, 86, 87],
+    [100, 101, 102, 103],
+  ],
+  /** Farm: four-tile run of planted fence. */
+  fence: [[38, 39, 40, 41]],
+  /** Farm: sunflower on its stem. */
+  sunflower: [[20], [36]],
 } as const;
+
+type Grid = readonly (readonly (number | null)[])[];
 
 interface SpriteProps {
   tile: number;
+  sheet?: SheetName;
   /** Each tile is 18px; scale 4 renders it at 72px. */
   scale?: number;
   className?: string;
   style?: CSSProperties;
 }
 
-export function Sprite({ tile, scale = 4, className, style }: SpriteProps) {
-  const col = tile % COLS;
-  const row = Math.floor(tile / COLS);
+export function Sprite({ tile, sheet = "base", scale = 4, className, style }: SpriteProps) {
+  const { url, cols, rows } = SHEETS[sheet];
+  const col = tile % cols;
+  const row = Math.floor(tile / cols);
 
   return (
     <span
@@ -66,8 +111,8 @@ export function Sprite({ tile, scale = 4, className, style }: SpriteProps) {
         display: "block",
         width: TILE * scale,
         height: TILE * scale,
-        backgroundImage: `url(${sheet})`,
-        backgroundSize: `${COLS * TILE * scale}px ${ROWS * TILE * scale}px`,
+        backgroundImage: `url(${url})`,
+        backgroundSize: `${cols * TILE * scale}px ${rows * TILE * scale}px`,
         backgroundPosition: `${-col * TILE * scale}px ${-row * TILE * scale}px`,
         backgroundRepeat: "no-repeat",
         imageRendering: "pixelated",
@@ -78,15 +123,15 @@ export function Sprite({ tile, scale = 4, className, style }: SpriteProps) {
 }
 
 interface CompositeProps {
-  /** Tile indices as [row][col]. */
-  grid: readonly (readonly number[])[];
+  grid: Grid;
+  sheet?: SheetName;
   scale?: number;
   className?: string;
   style?: CSSProperties;
 }
 
-/** Assembles a multi-tile object so nothing is rendered mid-object. */
-export function Composite({ grid, scale = 4, className, style }: CompositeProps) {
+/** Assembles a multi-tile structure so nothing is drawn mid-object. */
+export function Composite({ grid, sheet = "base", scale = 4, className, style }: CompositeProps) {
   const cols = grid[0].length;
 
   return (
@@ -99,7 +144,15 @@ export function Composite({ grid, scale = 4, className, style }: CompositeProps)
         ...style,
       }}
     >
-      {grid.flatMap((row, r) => row.map((tile, c) => <Sprite key={`${r}-${c}`} tile={tile} scale={scale} />))}
+      {grid.flatMap((row, r) =>
+        row.map((tile, c) =>
+          tile === null ? (
+            <span key={`${r}-${c}`} style={{ width: TILE * scale, height: TILE * scale }} />
+          ) : (
+            <Sprite key={`${r}-${c}`} tile={tile} sheet={sheet} scale={scale} />
+          ),
+        ),
+      )}
     </span>
   );
 }
@@ -108,7 +161,6 @@ interface AnimatedProps {
   /** Horizontal frame strip. */
   src: string;
   frames: number;
-  /** Native size of a single frame, in pixels. */
   frameWidth: number;
   frameHeight: number;
   scale?: number;
@@ -141,8 +193,6 @@ export function AnimatedSprite({
         backgroundRepeat: "no-repeat",
         imageRendering: "pixelated",
         animation: `sprite-frames ${duration}s steps(${frames}) infinite`,
-        // The keyframe walks background-position across the strip; the end
-        // position is one full strip width so steps() lands on each frame.
         ["--frames-width" as string]: `${frameWidth * frames * scale}px`,
         ...style,
       }}

@@ -135,14 +135,28 @@ schema.sql     tables + seed tags
   tier is 150 points/day; a search costs ~1.1, so roughly 130 searches a day.
 - **Wheel size is capped at 12 slices** — a wheel with 40 labels is unreadable.
   Candidates are resampled on every spin, so the full book still gets used.
-- **Art** is Kenney's *Pixel Platformer* pack (CC0). The full download lives in
-  `art/pixel-platformer/` and is **not** served -- only the 6KB sprite sheet is
-  imported (`src/client/sprites/tilemap.png`), so Vite ships one image.
-  `components/Sprite.tsx` addresses tiles by index in the 20x9 grid.
+- **Art** is Kenney's *Pixel Platformer* and its *Farm Expansion* (both CC0).
+  The full downloads live in `art/pixel-platformer/` and
+  `art/pixel-platformer-farm-expansion/` and are **not** served -- only the two
+  sprite sheets are imported (`src/client/sprites/tilemap.png` 6KB and
+  `farm.png` 5KB). `components/Sprite.tsx` addresses tiles by index within each
+  sheet's grid (base is 20x9, farm is 16x7; both 18px tiles).
 
-  Many of Kenney's objects span several tiles -- a cloud is three wide, a tree
-  three tall, a hedge up to 3x3. Rendering one tile of those is what makes
-  sprites look sliced, so use `Composite` with the grids in `G`, not `Sprite`.
+  **Most of Kenney's scenery is a multi-tile structure**, and drawing a single
+  tile of one is what makes sprites look sliced through. A cloud is three tiles
+  wide; a tree is a canopy block over a trunk column; the greenhouse is 4x4.
+  Anything listed in `G` must go through `Composite`; only things in `T` are
+  complete on their own. Some traps found the hard way:
+
+  - `97` looks like a tree canopy but is only the top third of one.
+  - `16` is a standalone bush, *not* the cap of a hedge column -- stacking it
+    over `76` leaves a visible gap.
+  - The farm pack's wide orange canopy bars (`60`-`63`) are standalone strips
+    and don't stack onto anything; the compact `autumnTree` works because tile
+    `77` has the trunk fork drawn into it.
+
+  When adding scenery, assemble a candidate grid and render it to a PNG before
+  wiring it up -- guessing from the sheet overview gets it wrong.
 
   The two ground tiles are pre-processed: Kenney's terrain blocks carry a **2px**
   dark outline on all four sides, which tiles into a visible brick grid, so

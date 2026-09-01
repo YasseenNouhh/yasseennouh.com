@@ -3,23 +3,24 @@ import dirt from "../sprites/dirt.png";
 import sun from "../sprites/sun.png";
 import bird from "../sprites/bird.png";
 import dog from "../sprites/dog.png";
-import { AnimatedSprite, Composite, Sprite, G, T } from "./Sprite";
+import { AnimatedSprite, Composite, Sprite, G, T, type SheetName } from "./Sprite";
 
 /**
- * Fixed scenery behind the app.
+ * Fixed scenery behind the app: a smallholding with a greenhouse, a fenced
+ * vegetable patch, trees and Loki doing laps.
  *
- * Plants, hedges, clouds and trees come from Kenney's Pixel Platformer set
- * (CC0), assembled as whole objects rather than single tiles. The sun, birds
- * and the dog aren't in that pack -- they're drawn in
- * `scripts/make-sprites.cjs` using the same palette.
+ * Scenery comes from Kenney's Pixel Platformer and its Farm Expansion (both
+ * CC0). Everything multi-tile is assembled with `Composite` -- see Sprite.tsx.
+ * The sun, birds and dog aren't in either pack; they're drawn in
+ * `scripts/make-sprites.cjs`.
  */
 
 const GROUND_H = 150;
 const GRASS_H = 72;
 
 const CLOUDS = [
-  { grid: G.cloud, scale: 3, top: "7%", dur: 116, delay: 0 },
-  { grid: G.cloud, scale: 2, top: "21%", dur: 168, delay: -60 },
+  { scale: 3, top: "7%", dur: 116, delay: 0 },
+  { scale: 2, top: "21%", dur: 168, delay: -60 },
 ];
 
 const SMALL_CLOUDS = [
@@ -28,38 +29,62 @@ const SMALL_CLOUDS = [
 ];
 
 const BIRDS = [
-  { top: "20%", scale: 3, dur: 68, delay: 0, flap: 0.5 },
-  { top: "25%", scale: 2, dur: 68, delay: -3.2, flap: 0.44 },
-  { top: "17%", scale: 2, dur: 68, delay: -6.0, flap: 0.56 },
+  { top: "20%", scale: 3, dur: 68, delay: -8, flap: 0.5 },
+  { top: "25%", scale: 2, dur: 68, delay: -26, flap: 0.44 },
+  { top: "17%", scale: 2, dur: 68, delay: -47, flap: 0.56 },
 ];
 
-/** Deterministic, so the garden doesn't reshuffle on every render. */
-const SCENERY: { at: number; kind: "tree" | "bareTree" | "hedge" | "hedgeBlock" | number; scale: number }[] = [
-  { at: 1, kind: "tree", scale: 3 },
-  { at: 8, kind: T.shrub, scale: 3 },
-  { at: 12, kind: "hedge", scale: 2 },
-  { at: 17, kind: T.plant, scale: 3 },
-  { at: 21, kind: "bareTree", scale: 2 },
-  { at: 27, kind: T.mushroom, scale: 2 },
-  { at: 31, kind: T.pine, scale: 3 },
-  { at: 37, kind: "hedgeBlock", scale: 2 },
-  { at: 46, kind: T.shrub, scale: 3 },
-  { at: 51, kind: "tree", scale: 3 },
-  { at: 58, kind: T.plant, scale: 2 },
-  { at: 62, kind: "hedge", scale: 2 },
-  { at: 67, kind: T.mushroom, scale: 2 },
-  { at: 71, kind: T.pine, scale: 3 },
-  { at: 78, kind: "bareTree", scale: 2 },
-  { at: 84, kind: "hedgeBlock", scale: 2 },
-  { at: 92, kind: T.shrub, scale: 3 },
-  { at: 96, kind: "tree", scale: 3 },
+type Item =
+  | { at: number; structure: keyof typeof G; sheet?: SheetName; scale: number }
+  | { at: number; tile: number; sheet?: SheetName; scale: number };
+
+/** Deterministic, so the garden doesn't reshuffle on every render. Positions
+ *  keep the bigger structures clear of the wheel, which covers the middle. */
+const SCENERY: Item[] = [
+  { at: 1, structure: "bigTree", scale: 2 },
+  { at: 6, tile: T.bush, scale: 2 },
+  { at: 8, structure: "sunflower", sheet: "farm", scale: 2 },
+
+  // the greenhouse, well clear of the wheel
+  { at: 11, structure: "greenhouse", sheet: "farm", scale: 2 },
+
+  { at: 20, structure: "autumnTree", sheet: "farm", scale: 2 },
+
+  // fenced vegetable patch
+  { at: 24, structure: "fence", sheet: "farm", scale: 2 },
+  { at: 25, tile: T.carrot, sheet: "farm", scale: 2 },
+  { at: 27, tile: T.tomatoes, sheet: "farm", scale: 2 },
+  { at: 29, tile: T.wheat, sheet: "farm", scale: 2 },
+
+  { at: 33, tile: T.hayBale, sheet: "farm", scale: 2 },
+  { at: 36, tile: T.pumpkin, sheet: "farm", scale: 2 },
+
+  // middle is mostly behind the wheel, so keep it low and sparse
+  { at: 41, tile: T.shrub, scale: 2 },
+  { at: 47, structure: "lowHedge", scale: 2 },
+  { at: 54, tile: T.sprout, sheet: "farm", scale: 2 },
+  { at: 58, tile: T.mushroom, scale: 2 },
+
+  { at: 62, tile: T.pine, scale: 3 },
+  { at: 66, structure: "autumnTree", sheet: "farm", scale: 2 },
+  { at: 70, tile: T.corn, sheet: "farm", scale: 2 },
+
+  { at: 74, structure: "fence", sheet: "farm", scale: 2 },
+  { at: 75, tile: T.leafyPlant, sheet: "farm", scale: 2 },
+  { at: 77, tile: T.carrot, sheet: "farm", scale: 2 },
+
+  { at: 82, structure: "tree", scale: 2 },
+  { at: 88, tile: T.hayRoll, sheet: "farm", scale: 2 },
+  { at: 91, tile: T.jackOLantern, sheet: "farm", scale: 2 },
+  { at: 94, structure: "lowHedge", scale: 2 },
+  { at: 98, structure: "bigTree", scale: 2 },
 ];
 
-function Scenery({ kind, scale }: { kind: (typeof SCENERY)[number]["kind"]; scale: number }) {
-  if (typeof kind === "number") return <Sprite tile={kind} scale={scale} />;
-  const grid =
-    kind === "tree" ? G.tree : kind === "bareTree" ? G.bareTree : kind === "hedge" ? G.hedge : G.hedgeBlock;
-  return <Composite grid={grid} scale={scale} />;
+function Piece({ item }: { item: Item }) {
+  if ("structure" in item) {
+    return <Composite grid={G[item.structure]} sheet={item.sheet} scale={item.scale} />;
+  }
+  return <Sprite tile={item.tile} sheet={item.sheet} scale={item.scale} />;
 }
 
 export function Garden() {
@@ -70,7 +95,7 @@ export function Garden() {
       {CLOUDS.map((c, i) => (
         <Composite
           key={`c${i}`}
-          grid={c.grid}
+          grid={G.cloud}
           scale={c.scale}
           className="cloud-sprite"
           style={{ top: c.top, animationDuration: `${c.dur}s`, animationDelay: `${c.delay}s` }}
@@ -105,9 +130,9 @@ export function Garden() {
       ))}
 
       <div className="ground" style={{ height: GROUND_H }}>
-        {SCENERY.map((s, i) => (
-          <span key={i} className="scenery" style={{ left: `${s.at}%`, bottom: GROUND_H - 12 }}>
-            <Scenery kind={s.kind} scale={s.scale} />
+        {SCENERY.map((item, i) => (
+          <span key={i} className="scenery" style={{ left: `${item.at}%`, bottom: GROUND_H - 12 }}>
+            <Piece item={item} />
           </span>
         ))}
 
