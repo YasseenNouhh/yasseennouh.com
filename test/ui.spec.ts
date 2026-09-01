@@ -290,7 +290,7 @@ test("wheel labels stay clear of the rim, even with a very long title", async ({
   // The structural guarantee: a hard clip on the disc. This must never be
   // removed even if the sizing math above it is ever touched again.
   await expect(page.locator("#wheel-disc circle")).toHaveCount(1);
-  const clipApplied = await page.locator(".wheel-rotor").getAttribute("clip-path");
+  const clipApplied = await page.locator(".wheel-slices").getAttribute("clip-path");
   expect(clipApplied).toBe("url(#wheel-disc)");
 
   // The sizing guarantee: labels should clear the rim with real margin, not

@@ -139,16 +139,12 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
           </clipPath>
         </defs>
 
-        {/* wooden rim */}
-        <circle cx={CX} cy={CY} r={R + 9} fill="#5c3a21" />
-        <circle cx={CX} cy={CY} r={R + 5} fill="#8b5e3c" />
-
-        {/* Pivot at the disc centre so CSS rotation never tracks the rotor's
-            content bounding box (asymmetric labels were shifting the axis). */}
+        {/* Slices first. The wooden rim used to be filled circles drawn before
+            the rotor; with the rotor on its own compositor layer (will-change)
+            those discs painted back over the coloured wedges in some browsers. */}
         <g transform={`translate(${CX} ${CY})`}>
           <g
             className="wheel-rotor"
-            clipPath="url(#wheel-disc)"
             style={{
               transform: `rotate(${rotation}deg)`,
               transition: spinning
@@ -156,7 +152,11 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
                 : "none",
             }}
           >
-            <g className="wheel-slices" transform={`translate(${-CX} ${-CY})`}>
+            <g
+              className="wheel-slices"
+              clipPath="url(#wheel-disc)"
+              transform={`translate(${-CX} ${-CY})`}
+            >
               {candidates.map((c, i) => {
                 const start = i * step;
                 const end = start + step;
@@ -203,6 +203,10 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
             </g>
           </g>
         </g>
+
+        {/* Rim as strokes so it can sit above the slices without covering them. */}
+        <circle cx={CX} cy={CY} r={R + 4.5} fill="none" stroke="#5c3a21" strokeWidth={9} />
+        <circle cx={CX} cy={CY} r={R + 4.5} fill="none" stroke="#8b5e3c" strokeWidth={5} />
       </svg>
 
       <div className="hub">
