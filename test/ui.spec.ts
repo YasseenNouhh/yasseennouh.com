@@ -269,6 +269,66 @@ test("renaming to a pork dish is refused", async ({ page }) => {
   await deleteRecipe(id);
 });
 
+test("wheel labels stay clear of the rim, even with a very long title", async ({ page }) => {
+  // A long title wraps onto two lines, which is the case that used to push
+  // text past the wooden rim into the garden behind it -- the SVG has
+  // overflow:visible, so anything outside R=185 painted straight over the
+  // scenery, and because it was inside the rotating group it read as the
+  // wheel itself swinging off-centre.
+  const longId = await seedRecipe(
+    "Extraordinarily Long Slow-Braised Wagyu Beef Short Rib Casserole",
+    ["rimtest"],
+  );
+  const shortIds = [];
+  for (let i = 0; i < 5; i++) shortIds.push(await seedRecipe(`Rim Dish ${i}`, ["rimtest"]));
+
+  await page.goto(BASE);
+  await page.locator(".wheel-svg").waitFor({ timeout: 10_000 });
+  await page.getByRole("button", { name: "rimtest", exact: true }).click();
+  await expect(page.locator(".wheel-rotor > g")).toHaveCount(6);
+
+  // The structural guarantee: a hard clip on the disc. This must never be
+  // removed even if the sizing math above it is ever touched again.
+  await expect(page.locator("#wheel-disc circle")).toHaveCount(1);
+  const clipApplied = await page.locator(".wheel-rotor").getAttribute("clip-path");
+  expect(clipApplied).toBe("url(#wheel-disc)");
+
+  // The sizing guarantee: labels should clear the rim with real margin, not
+  // just get away with it because the clip caught them. Checked via each
+  // <text>'s true screen-space bounding box against the disc radius, at rest
+  // (rotor at rotate(0deg)) so screen pixels map directly to SVG user units.
+  const overflow = await page.evaluate(() => {
+    const svg = document.querySelector(".wheel-svg")!;
+    const svgRect = svg.getBoundingClientRect();
+    const scale = svgRect.width / 420; // viewBox is "-10 -10 420 420"
+    const cx = svgRect.left + 210 * scale;
+    const cy = svgRect.top + 210 * scale;
+    const R = 185; // must match Wheel.tsx's own R constant
+
+    return [...document.querySelectorAll(".wheel-rotor text")].map((t) => {
+      const r = t.getBoundingClientRect();
+      const corners = [
+        [r.left, r.top], [r.right, r.top], [r.left, r.bottom], [r.right, r.bottom],
+      ] as const;
+      const maxUserUnits = Math.max(
+        ...corners.map(([x, y]) => Math.hypot(x - cx, y - cy) / scale),
+      );
+      return { text: t.textContent, maxUserUnits, over: maxUserUnits - R };
+    });
+  });
+
+  const R = 185; // must match Wheel.tsx's own R constant
+  for (const row of overflow) {
+    // A few units of slack: this measures the AABB corner of a rotated
+    // element, which overestimates the true glyph extent, so the intent is
+    // "comfortably inside the rim", not "exactly at R".
+    expect(row.maxUserUnits, `"${row.text}" reaches too close to the rim`).toBeLessThan(R + 5);
+  }
+
+  await deleteRecipe(longId);
+  for (const id of shortIds) await deleteRecipe(id);
+});
+
 test("tag filtering changes the wheel", async ({ page }) => {
   const a = await seedRecipe("Filter Dish A", ["filtera"]);
   const b = await seedRecipe("Filter Dish B", ["filterb"]);

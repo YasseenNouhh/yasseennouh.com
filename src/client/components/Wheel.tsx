@@ -111,8 +111,15 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
   }, [spinToken]);
 
   const labelSize = n <= 6 ? 13 : n <= 9 ? 11 : 9;
-  // Radial room between the hub edge and the rim, in glyphs.
-  const labelChars = Math.max(6, Math.floor((R * 0.66) / labelSize));
+  const anchorR = R * 0.58;
+  // Budget a line's width so it clears the rim with a real margin, not just
+  // scrapes it: half the line extends outward from the anchor (textAnchor is
+  // "middle"), so outward reach = anchorR + width/2, capped at R - RIM_MARGIN.
+  // A safety clip guards the rest (see wheel-disc below), but this is what
+  // keeps it from actually being needed on ordinary titles.
+  const RIM_MARGIN = 12;
+  const widthBudget = (R - RIM_MARGIN - anchorR) * 2;
+  const labelChars = Math.max(6, Math.floor(widthBudget / labelSize));
 
   return (
     <div className="wheel-wrap">
@@ -120,12 +127,25 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
 
       <svg className="wheel-svg" viewBox="-10 -10 420 420" role="img"
            aria-label={`Wheel of ${n} dinner options`}>
+        {/* Hard clip on the disc. Long two-line labels can otherwise push a
+            glyph or two past the rim into open canvas -- since the SVG is
+            overflow:visible, that text would render over the garden behind
+            it, and because it's inside the rotating group it reads as the
+            wheel itself swinging off-centre. This makes that structurally
+            impossible rather than just numerically unlikely. */}
+        <defs>
+          <clipPath id="wheel-disc">
+            <circle cx={CX} cy={CY} r={R} />
+          </clipPath>
+        </defs>
+
         {/* wooden rim */}
         <circle cx={CX} cy={CY} r={R + 9} fill="#5c3a21" />
         <circle cx={CX} cy={CY} r={R + 5} fill="#8b5e3c" />
 
         <g
           className="wheel-rotor"
+          clipPath="url(#wheel-disc)"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: spinning
@@ -137,7 +157,7 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
             const start = i * step;
             const end = start + step;
             const mid = start + step / 2;
-            const [tx, ty] = point(mid, R * 0.66);
+            const [tx, ty] = point(mid, anchorR);
             const flip = mid > 180;
 
             return (
@@ -163,7 +183,7 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
                     <tspan
                       key={li}
                       x={tx}
-                      dy={li === 0 ? -((arr.length - 1) * labelSize * 0.7) : labelSize * 1.4}
+                      dy={li === 0 ? -((arr.length - 1) * labelSize * 0.6) : labelSize * 1.2}
                     >
                       {line}
                     </tspan>

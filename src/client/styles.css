@@ -300,17 +300,29 @@ h3 {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  /* Shadow lives here, not on the SVG. filter: drop-shadow on the same
+     element that's being CSS-transform-animated recomputes its filter region
+     against the live (rotating) content each frame -- one browser's version
+     of that recompute lagging a frame is what made the wheel look like it
+     wobbled off its own axis mid-spin. Applied here, on a wrapper that never
+     transforms, the shadow still traces the disc's round silhouette (it
+     follows alpha, not the box) but the filter region itself is static. */
+  filter: drop-shadow(0 8px 0 var(--shadow));
 }
 
 .wheel-svg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 8px 0 var(--shadow));
 }
 
 .wheel-rotor {
   transform-origin: 50% 50%;
+  transform-box: view-box;
+  /* Promotes the rotor to its own compositor layer up front, instead of only
+     when the animation starts -- avoids a layer-promotion hitch on the very
+     first spin. */
+  will-change: transform;
 }
 
 /* The hub never rotates — Loki stays upright while dinner spins. */

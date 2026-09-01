@@ -69,7 +69,7 @@ npm test               # terminal 2: API tests, then browser tests
   CRUD, duplicate rejection, tag creation and replacement, cascade delete,
   cooldown behaviour including the small-pool relaxation, history, stats, and
   JSON 404s for unknown API paths.
-- `npm run test:ui` (Playwright/Chromium, 13 tests) -- boot and loading screen,
+- `npm run test:ui` (Playwright/Chromium, 14 tests) -- boot and loading screen,
   the hub photo, spinning (asserting the announced dish **is** the slice under
   the pointer), spin-again, COOK IT with the shopping list, the unlock dialog
   with a wrong and a right key, add-a-recipe end to end through Spoonacular,
@@ -170,6 +170,26 @@ schema.sql     tables + seed tags
   `node scripts/make-sprites.cjs` to regenerate them after editing.
   A greenhouse would need a different pack -- Kenney's *Tiny Town* has buildings.
 
+- **Wheel labels are hard-clipped to the disc** (`clipPath="url(#wheel-disc)"`
+  on `.wheel-rotor`). A long title wraps onto two lines, and the character
+  budget for that line was previously copy-pasted from the anchor-radius
+  constant for an unrelated reason -- worst case, a two-line title's width
+  pushed a glyph past the wooden rim into open canvas (the SVG is
+  `overflow: visible`). Because that text sat inside the rotating group, it
+  read as the wheel itself swinging off-centre mid-spin, with garden scenery
+  showing through the gap. The clip makes that structurally impossible
+  regardless of any future sizing change; `labelChars` is now derived from an
+  explicit `RIM_MARGIN` so the clip is a backstop, not something titles
+  routinely hit. Covered by a Playwright test that measures every label's true
+  screen-space extent against the rim radius, not just eyeballing a
+  screenshot -- a downscaled thumbnail of a passing render can still look like
+  it's overflowing.
+- The wheel's drop-shadow lives on `.wheel-wrap` (a plain, non-rotating div),
+  not on the `.wheel-svg` that contains the rotating content. A CSS `filter`
+  on the same element being CSS-transform-animated has to keep recomputing its
+  filter region against the live (rotating) content; on `.wheel-wrap` the
+  shadow still traces the disc's silhouette (drop-shadow follows alpha, not
+  the element's box) but the filter region is static.
 - The wheel, pointer and sign are still drawn in SVG/CSS so they scale with
   their text.
 - The hub photo is loaded from `/assets/loki.png`; if it's absent the wheel
