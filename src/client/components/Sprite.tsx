@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import baseSheet from "../sprites/tilemap.png";
 import farmSheet from "../sprites/farm.png";
+import type { TreeRecipe } from "./trees";
 
 /**
  * Tiles from Kenney's Pixel Platformer (CC0) and its Farm Expansion, addressed
@@ -50,39 +51,9 @@ export const T = {
 
 /**
  * Multi-tile structures as [row][col] grids. `null` leaves a gap, which is how
- * the greenhouse gable and the tree trunks are centred.
+ * the greenhouse gable is centred. Trees use layered recipes in `trees.ts`.
  */
 export const G = {
-  /** Canopy block over a centred trunk -- the canopy rows tile seamlessly. */
-  tree: [
-    [17, 18, 19],
-    [57, 58, 59],
-    [null, 97, null],
-    [null, 117, null],
-    [null, 137, null],
-  ],
-  bigTree: [
-    [17, 18, 19],
-    [37, 38, 39],
-    [57, 58, 59],
-    [null, 97, null],
-    [null, 117, null],
-    [null, 137, null],
-  ],
-  /** Farm: autumn birch, two tiles wide. 74/78 are branch caps, 76/79 the
-   *  canopy-to-trunk transition row, 93/109 the trunk column. */
-  autumnBigTree: [
-    [74, 78],
-    [76, 79],
-    [null, 93],
-    [null, 109],
-  ],
-  /** Farm: shorter autumn birch -- same width, one fewer trunk segment. */
-  autumnTree: [
-    [74, 78],
-    [76, 79],
-    [null, 109],
-  ],
   /** Low wide hedge. */
   lowHedge: [[77, 78, 79]],
   /** Three-tile-wide cloud. */
@@ -165,6 +136,50 @@ export function Composite({ grid, sheet = "base", scale = 4, className, style }:
           ),
         ),
       )}
+    </span>
+  );
+}
+
+interface TreeSpriteProps {
+  recipe: TreeRecipe;
+  scale?: number;
+  className?: string;
+  style?: CSSProperties;
+}
+
+/**
+ * Kenney trees are built from overlapping layers -- canopy tiles sit on top of
+ * the trunk rather than in one flat grid. Each placement is absolutely
+ * positioned from the bottom-left anchor so branches can sit beside the trunk.
+ */
+export function TreeSprite({ recipe, scale = 4, className, style }: TreeSpriteProps) {
+  const px = TILE * scale;
+
+  return (
+    <span
+      className={className}
+      style={{
+        position: "relative",
+        display: "block",
+        width: recipe.w * px,
+        height: recipe.h * px,
+        ...style,
+      }}
+    >
+      {recipe.tiles.map(({ x, y, tile, layer = 0 }, i) => (
+        <Sprite
+          key={i}
+          tile={tile}
+          sheet={recipe.sheet}
+          scale={scale}
+          style={{
+            position: "absolute",
+            left: x * px,
+            bottom: y * px,
+            zIndex: layer,
+          }}
+        />
+      ))}
     </span>
   );
 }

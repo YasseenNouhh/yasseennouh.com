@@ -74,17 +74,18 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const timer = useRef<number | null>(null);
-  const firstRender = useRef(true);
+  const seenToken = useRef(spinToken);
 
   const n = candidates.length;
   const step = n > 0 ? 360 / n : 360;
 
   useEffect(() => {
-    // Don't spin on mount, only when the parent bumps the token.
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
+    // Only spin when the parent bumps the token (SPIN / SPIN AGAIN). A
+    // firstRender flag breaks under StrictMode, which re-runs effects on mount
+    // and would treat the second pass as a real spin.
+    if (spinToken === seenToken.current) return;
+    seenToken.current = spinToken;
+    if (spinToken === 0) return;
     if (!n || spinning) return;
 
     const winner = Math.floor(Math.random() * n);

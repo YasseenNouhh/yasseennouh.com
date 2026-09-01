@@ -4,6 +4,7 @@ import sun from "../sprites/sun.png";
 import bird from "../sprites/bird.png";
 import dog from "../sprites/dog.png";
 import { AnimatedSprite, Composite, Sprite, G, T, type SheetName } from "./Sprite";
+import { SimpleTree, type TreeType } from "./NewTrees";
 
 /**
  * Fixed scenery behind the app: a smallholding with a greenhouse, a fenced
@@ -36,19 +37,20 @@ const BIRDS = [
 
 type Item =
   | { at: number; structure: keyof typeof G; sheet?: SheetName; scale: number }
+  | { at: number; simpleTree: TreeType; stage: number; scale: number }
   | { at: number; tile: number; sheet?: SheetName; scale: number };
 
 /** Deterministic, so the garden doesn't reshuffle on every render. Positions
  *  keep the bigger structures clear of the wheel, which covers the middle. */
 const SCENERY: Item[] = [
-  { at: 1, structure: "bigTree", scale: 2 },
+  { at: 1, simpleTree: "oak", stage: 6, scale: 3 },
   { at: 6, tile: T.bush, scale: 2 },
   { at: 8, structure: "sunflower", sheet: "farm", scale: 2 },
 
   // the greenhouse, well clear of the wheel
   { at: 11, structure: "greenhouse", sheet: "farm", scale: 2 },
 
-  { at: 20, structure: "autumnBigTree", sheet: "farm", scale: 2 },
+  { at: 20, simpleTree: "birch", stage: 5, scale: 3 },
 
   // fenced vegetable patch
   { at: 24, structure: "fence", sheet: "farm", scale: 2 },
@@ -63,24 +65,28 @@ const SCENERY: Item[] = [
   { at: 41, tile: T.shrub, scale: 2 },
   { at: 47, structure: "lowHedge", scale: 2 },
   { at: 54, tile: T.sprout, sheet: "farm", scale: 2 },
+  { at: 56, simpleTree: "maple", stage: 4, scale: 3 },
   { at: 58, tile: T.mushroom, scale: 2 },
 
   { at: 62, tile: T.pine, scale: 3 },
-  { at: 66, structure: "autumnTree", sheet: "farm", scale: 2 },
+  { at: 66, simpleTree: "birch", stage: 4, scale: 3 },
   { at: 70, tile: T.corn, sheet: "farm", scale: 2 },
 
   { at: 74, structure: "fence", sheet: "farm", scale: 2 },
   { at: 75, tile: T.leafyPlant, sheet: "farm", scale: 2 },
   { at: 77, tile: T.carrot, sheet: "farm", scale: 2 },
 
-  { at: 82, structure: "tree", scale: 2 },
+  { at: 82, simpleTree: "apple", stage: 5, scale: 3 },
   { at: 88, tile: T.hayRoll, sheet: "farm", scale: 2 },
   { at: 91, tile: T.jackOLantern, sheet: "farm", scale: 2 },
   { at: 94, structure: "lowHedge", scale: 2 },
-  { at: 98, structure: "bigTree", scale: 2 },
+  { at: 98, simpleTree: "oak", stage: 5, scale: 3 },
 ];
 
 function Piece({ item }: { item: Item }) {
+  if ("simpleTree" in item) {
+    return <SimpleTree type={item.simpleTree} stage={item.stage} scale={item.scale} />;
+  }
   if ("structure" in item) {
     return <Composite grid={G[item.structure]} sheet={item.sheet} scale={item.scale} />;
   }

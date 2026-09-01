@@ -82,12 +82,12 @@ function strip(frames, file) {
    retriever" at this size: a long snout, a floppy ear hanging past the jaw,
    a feathered chest, and a plumed tail carried high. */
 const dogBody = [
-  ".....OOO..............",
-  "....OGGGO...OOOOO.....",
-  "....OGGGO..OGGGGGO....",
-  ".....OGGO.OGLLLLLGO...",
-  ".....OGGO.ODDLLLGGGO..",
-  "......OGGOODDLGNGGGGO.",
+  ".OOO..................",
+  "OGGGO.......OOOOO.....",
+  "OGGGO......OGGGGGO....",
+  ".OGGO.....OGLLLLLGO...",
+  ".OGGO.....ODDLLLGGGO..",
+  "..OGG....OODDLGNGGGGO.",
   "...OOOOGGGODDGGGGGGGO.",
   "..OGGGGGGGODDGGGGGWWNO",
   "..OGGGGGGGGODDGGGWWWNO",
@@ -116,14 +116,16 @@ const dogLegsC = [
   "......OOO..OOO...OOO..",
 ];
 
+/** Nudge a row left and pad the right so tail-up frames track dogBody edits. */
+function shiftRowLeft(row, chars = 1) {
+  return (row.slice(chars) + ".".repeat(chars)).slice(0, row.length);
+}
+
 /** The tail lifts on alternate frames so the trot has some bounce. */
 function dogFrame(legs, tailUp) {
   const body = dogBody.slice();
   if (tailUp) {
-    body[0] = "....OOO...............";
-    body[1] = "...OGGGO....OOOOO.....";
-    body[2] = "...OGGGO...OGGGGGO....";
-    body[3] = "....OGGO..OGLLLLLGO...";
+    for (let i = 0; i < 4; i++) body[i] = shiftRowLeft(body[i]);
   }
   return [...body, ...legs];
 }
