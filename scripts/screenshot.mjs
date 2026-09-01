@@ -3,13 +3,18 @@ const BASE = "http://127.0.0.1:8787";
 const KEY = "loki-local-dev";
 const out = process.argv[2];
 
-// make sure there are recipes to show
+// Make sure there are recipes to show, without piling up duplicates.
+const existing = new Set(
+  (await (await fetch(`${BASE}/api/recipes`)).json()).recipes.map((r) => r.title),
+);
 for (let i = 0; i < 6; i++) {
+  const name = ["Mushroom Risotto","Chicken Katsu Curry","Shakshuka","Lemon Pasta","Beef Rendang","Miso Aubergine"][i];
+  if (existing.has(name)) continue;
   await fetch(`${BASE}/api/admin/recipes`, {
     method: "POST",
     headers: { "x-admin-key": KEY, "content-type": "application/json" },
     body: JSON.stringify({
-      title: ["Mushroom Risotto","Chicken Katsu Curry","Shakshuka","Lemon Pasta","Beef Rendang","Miso Aubergine"][i],
+      title: name,
       ready_minutes: 25 + i * 5, servings: 2,
       ingredients: [{ name: "thing", amount: 1, unit: "", original: "1 thing" }],
       instructions: ["Cook it."], tags: [["comfort"],["quick"],["veggie"],["quick"],["fancy"],["healthy"]][i],

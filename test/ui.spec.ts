@@ -185,7 +185,9 @@ test("an admin can add a recipe end to end and then remove it", async ({ page })
   await page.getByRole("button", { name: "+ ADD" }).click();
   await expect(page.getByRole("heading", { name: "Add a recipe" })).toBeVisible();
 
-  await page.getByPlaceholder(/chicken katsu/).fill("pasta");
+  // A dish unlikely to already be in the book -- every result being
+  // "already saved" would leave nothing to pick.
+  await page.getByPlaceholder(/chicken katsu/).fill("tagine");
   await page.getByRole("button", { name: "SEARCH" }).click();
 
   // Quota may be spent; that isn't a UI failure, so bail out cleanly.
@@ -201,24 +203,70 @@ test("an admin can add a recipe end to end and then remove it", async ({ page })
   expect(count).toBeGreaterThan(0);
 
   const pick = page.getByRole("button", { name: "PICK THIS" }).first();
+  test.skip(!(await pick.count()), "every result is already in the book");
   await pick.click();
   await expect(page.getByRole("heading", { name: "Save this one?" })).toBeVisible();
+
+  // Remember exactly which dish we chose -- picking a row by index later would
+  // land on whatever else happens to be in the book.
+  const title = (await page.locator(".modal .card__title").first().innerText()).trim();
+  const before = await page.locator(".p-table__row").count();
 
   await page.getByRole("button", { name: "comfort", exact: true }).click();
   await page.getByRole("button", { name: "SAVE TO KITCHEN" }).click();
   await expect(page.locator(".modal")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator(".p-table__row")).toHaveCount(before + 1);
 
-  // It should now be in the book; open it and delete it.
-  const row = page.locator(".p-table__row").nth(1);
-  const title = await row.locator(".p-table__td--title").innerText();
+  // Open that exact recipe and remove it again.
+  const row = page.locator(".p-table__row").filter({ hasText: title }).first();
   await row.click();
   await expect(page.locator(".modal")).toBeVisible();
-  await expect(page.getByRole("heading", { name: title })).toBeVisible();
 
   page.on("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "REMOVE RECIPE" }).click();
   await expect(page.locator(".modal")).toHaveCount(0, { timeout: 10_000 });
-  await expect(page.locator(".p-table__row").filter({ hasText: title })).toHaveCount(0);
+  await expect(page.locator(".p-table__row")).toHaveCount(before);
+});
+
+test("an admin can rename a recipe from the modal", async ({ page }) => {
+  const id = await seedRecipe("Rename Me Please", ["renametest"]);
+  await unlock(page);
+  await page.goto(BASE);
+  await page.locator(".wheel-svg, .wheel-empty").first().waitFor({ timeout: 10_000 });
+
+  await page.getByRole("tab", { name: "RECIPES" }).click();
+  await page.locator(".p-table__row").filter({ hasText: "Rename Me Please" }).click();
+
+  const modal = page.locator(".modal");
+  await expect(modal).toBeVisible();
+
+  await modal.getByPlaceholder("Recipe name").fill("Renamed By Test");
+  await modal.getByRole("button", { name: "SAVE" }).click();
+  await expect(modal.getByRole("button", { name: "SAVED!" })).toBeVisible();
+
+  await modal.getByRole("button", { name: "Close" }).click();
+  await expect(
+    page.locator(".p-table__row").filter({ hasText: "Renamed By Test" }),
+  ).toBeVisible();
+
+  await deleteRecipe(id);
+});
+
+test("renaming to a pork dish is refused", async ({ page }) => {
+  const id = await seedRecipe("Innocent Dish", ["porktest"]);
+  await unlock(page);
+  await page.goto(BASE);
+  await page.locator(".wheel-svg, .wheel-empty").first().waitFor({ timeout: 10_000 });
+
+  await page.getByRole("tab", { name: "RECIPES" }).click();
+  await page.locator(".p-table__row").filter({ hasText: "Innocent Dish" }).click();
+
+  const modal = page.locator(".modal");
+  await modal.getByPlaceholder("Recipe name").fill("Bacon Sandwich");
+  await modal.getByRole("button", { name: "SAVE" }).click();
+  await expect(modal.getByText(/mentions pork/i)).toBeVisible();
+
+  await deleteRecipe(id);
 });
 
 test("tag filtering changes the wheel", async ({ page }) => {

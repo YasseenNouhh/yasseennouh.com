@@ -71,7 +71,9 @@ export const api = {
   checkAdmin: () => request<{ ok: true }>("/api/admin/check"),
 
   search: (q: string) =>
-    request<{ candidates: RecipeCandidate[] }>(`/api/admin/search?q=${encodeURIComponent(q)}`),
+    request<{ candidates: RecipeCandidate[]; pork_hidden: number }>(
+      `/api/admin/search?q=${encodeURIComponent(q)}`,
+    ),
 
   saveRecipe: (candidate: RecipeCandidate, tags: string[]) =>
     request<{ id: number }>("/api/admin/recipes", {
@@ -79,7 +81,7 @@ export const api = {
       body: JSON.stringify({ ...candidate, tags }),
     }),
 
-  updateRecipe: (id: number, patch: { notes?: string | null; tags?: string[] }) =>
+  updateRecipe: (id: number, patch: { title?: string; notes?: string | null; tags?: string[] }) =>
     request<{ ok: true }>(`/api/admin/recipes/${id}`, {
       method: "PATCH",
       body: JSON.stringify(patch),

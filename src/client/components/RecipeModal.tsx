@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Recipe } from "../../shared/types";
-import { api } from "../api";
+import { api, ApiError } from "../api";
 
 interface Props {
   recipe: Recipe;
@@ -15,10 +15,12 @@ function shoppingKey(id: number) {
 
 export function RecipeModal({ recipe, isAdmin, onClose, onChanged }: Props) {
   const [needed, setNeeded] = useState<Set<string>>(new Set());
+  const [title, setTitle] = useState(recipe.title);
   const [notes, setNotes] = useState(recipe.notes ?? "");
   const [tagText, setTagText] = useState(recipe.tags.map((t) => t.name).join(", "));
   const [savedFlash, setSavedFlash] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Shopping ticks are a per-person, per-device thing — localStorage, not the DB.
   useEffect(() => {
@@ -58,16 +60,22 @@ export function RecipeModal({ recipe, isAdmin, onClose, onChanged }: Props) {
   }
 
   async function saveEdits() {
-    await api.updateRecipe(recipe.id, {
-      notes: notes.trim() || null,
-      tags: tagText
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-    });
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 1800);
-    onChanged();
+    setSaveError(null);
+    try {
+      await api.updateRecipe(recipe.id, {
+        title: title.trim(),
+        notes: notes.trim() || null,
+        tags: tagText
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+      });
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1800);
+      onChanged();
+    } catch (err) {
+      setSaveError(err instanceof ApiError ? err.message : "Could not save.");
+    }
   }
 
   async function remove() {
@@ -179,6 +187,15 @@ export function RecipeModal({ recipe, isAdmin, onClose, onChanged }: Props) {
 
         {isAdmin && (
           <>
+            <h3>Name</h3>
+            <input
+              className="input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Recipe name"
+              style={{ width: "100%" }}
+            />
+
             <h3>Cook's notes</h3>
             <textarea
               className="input"
@@ -195,8 +212,10 @@ export function RecipeModal({ recipe, isAdmin, onClose, onChanged }: Props) {
               placeholder="quick, comfort, veggie"
               style={{ width: "100%" }}
             />
+            {saveError && <div className="notice notice--bad">{saveError}</div>}
+
             <div className="row" style={{ marginTop: 14 }}>
-              <button className="btn btn--leaf" onClick={saveEdits}>
+              <button className="btn btn--leaf" onClick={saveEdits} disabled={!title.trim()}>
                 {savedFlash ? "SAVED!" : "SAVE"}
               </button>
               <button className="btn btn--danger" onClick={remove}>

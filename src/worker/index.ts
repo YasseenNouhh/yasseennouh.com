@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { isAdmin } from "./auth";
 import { searchRecipes, SpoonacularError } from "./spoonacular";
 import { rowToRecipe, tagsForRecipes, type RecipeRow } from "./db";
+import { hasPork } from "./pork";
 import type { RecipeCandidate, SpinCandidate, Stats } from "../shared/types";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -54,12 +55,14 @@ app.get("/api/recipes", async (c) => {
 
   const stmt = tag ? c.env.DB.prepare(sql).bind(tag) : c.env.DB.prepare(sql);
   const { results } = await stmt.all<RecipeRow>();
-  const rows = results ?? [];
+  // Filtered in JS rather than SQL so the term list stays the single source of
+  // truth -- widening it re-checks existing rows with no migration.
+  const rows = (results ?? []).map((r) => rowToRecipe(r)).filter((r) => !hasPork(r));
   const tagMap = await tagsForRecipes(
     c.env.DB,
     rows.map((r) => r.id),
   );
-  return c.json({ recipes: rows.map((r) => rowToRecipe(r, tagMap.get(r.id) ?? [])) });
+  return c.json({ recipes: rows.map((r) => ({ ...r, tags: tagMap.get(r.id) ?? [] })) });
 });
 
 app.get("/api/recipes/:id", async (c) => {
@@ -91,20 +94,32 @@ app.get("/api/spin/candidates", async (c) => {
   const cooldownDays = Math.max(0, Number(c.req.query("cooldown") ?? DEFAULT_COOLDOWN_DAYS) || 0);
 
   const sql = tag
-    ? `SELECT r.id, r.title, r.image_url, r.ready_minutes, MAX(s.spun_at) AS last_spun_at
+    ? `SELECT r.id, r.title, r.image_url, r.ready_minutes, r.ingredients,
+              MAX(s.spun_at) AS last_spun_at
          FROM recipes r
          JOIN recipe_tags rt ON rt.recipe_id = r.id
          JOIN tags t ON t.id = rt.tag_id AND t.name = ?
          LEFT JOIN spins s ON s.recipe_id = r.id
         GROUP BY r.id`
-    : `SELECT r.id, r.title, r.image_url, r.ready_minutes, MAX(s.spun_at) AS last_spun_at
+    : `SELECT r.id, r.title, r.image_url, r.ready_minutes, r.ingredients,
+              MAX(s.spun_at) AS last_spun_at
          FROM recipes r
          LEFT JOIN spins s ON s.recipe_id = r.id
         GROUP BY r.id`;
 
   const stmt = tag ? c.env.DB.prepare(sql).bind(tag) : c.env.DB.prepare(sql);
-  const { results } = await stmt.all<SpinCandidate & { last_spun_at: string | null }>();
-  const all = results ?? [];
+  const { results } = await stmt.all<
+    SpinCandidate & { last_spun_at: string | null; ingredients: string }
+  >();
+  const all = (results ?? []).filter((r) => {
+    let ingredients: { name?: string; original?: string }[] = [];
+    try {
+      ingredients = JSON.parse(r.ingredients ?? "[]");
+    } catch {
+      /* malformed rows just get checked on title alone */
+    }
+    return !hasPork({ title: r.title, ingredients });
+  });
 
   if (!all.length) return c.json({ candidates: [], pool: 0, cooled: 0 });
 
@@ -219,8 +234,11 @@ app.get("/api/admin/search", async (c) => {
   if (!c.env.SPOONACULAR_KEY) return c.json({ error: "Recipe search isn't configured." }, 503);
 
   let found;
+  let porkHidden = 0;
   try {
-    found = await searchRecipes(q, c.env.SPOONACULAR_KEY, 10);
+    const result = await searchRecipes(q, c.env.SPOONACULAR_KEY, 10);
+    found = result.recipes;
+    porkHidden = result.porkHidden;
   } catch (err) {
     if (err instanceof SpoonacularError) {
       return c.json({ error: err.message }, err.status as 429);
@@ -244,7 +262,7 @@ app.get("/api/admin/search", async (c) => {
     ...f,
     already_saved: saved.has(f.spoonacular_id),
   }));
-  return c.json({ candidates });
+  return c.json({ candidates, pork_hidden: porkHidden });
 });
 
 /* --------------------------------------------------- admin: write recipes */
@@ -254,6 +272,10 @@ app.post("/api/admin/recipes", async (c) => {
     .json<Partial<RecipeCandidate> & { tags?: string[] }>()
     .catch(() => null);
   if (!body?.title) return c.json({ error: "A recipe needs a name." }, 400);
+
+  if (hasPork({ title: body.title, ingredients: body.ingredients })) {
+    return c.json({ error: "That recipe contains pork, so it can't be saved." }, 422);
+  }
 
   const res = await c.env.DB.prepare(
     `INSERT INTO recipes
@@ -287,8 +309,20 @@ app.patch("/api/admin/recipes/:id", async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id)) return c.json({ error: "Bad id" }, 400);
 
-  const body = await c.req.json<{ notes?: string | null; tags?: string[] }>().catch(() => null);
+  const body = await c.req
+    .json<{ title?: string; notes?: string | null; tags?: string[] }>()
+    .catch(() => null);
   if (!body) return c.json({ error: "Bad body" }, 400);
+
+  if (body.title !== undefined) {
+    const title = body.title.trim();
+    if (!title) return c.json({ error: "A recipe needs a name." }, 400);
+    if (title.length > 200) return c.json({ error: "That name is too long." }, 400);
+    if (hasPork({ title })) {
+      return c.json({ error: "That name mentions pork." }, 422);
+    }
+    await c.env.DB.prepare(`UPDATE recipes SET title = ? WHERE id = ?`).bind(title, id).run();
+  }
 
   if (body.notes !== undefined) {
     await c.env.DB.prepare(`UPDATE recipes SET notes = ? WHERE id = ?`).bind(body.notes, id).run();

@@ -1,4 +1,5 @@
 import type { Ingredient, RecipeCandidate } from "../shared/types";
+import { EXCLUDE_PARAM, hasPork } from "./pork";
 
 const BASE = "https://api.spoonacular.com";
 
@@ -74,7 +75,7 @@ export async function searchRecipes(
   query: string,
   apiKey: string,
   count = 10,
-): Promise<Omit<RecipeCandidate, "already_saved">[]> {
+): Promise<{ recipes: Omit<RecipeCandidate, "already_saved">[]; porkHidden: number }> {
   const url = new URL(`${BASE}/recipes/complexSearch`);
   url.searchParams.set("apiKey", apiKey);
   url.searchParams.set("query", query);
@@ -83,6 +84,9 @@ export async function searchRecipes(
   url.searchParams.set("fillIngredients", "true");
   url.searchParams.set("instructionsRequired", "true");
   url.searchParams.set("sort", "popularity");
+  // First line of defence; we still re-check every result ourselves below,
+  // because this only filters on Spoonacular's own ingredient tagging.
+  url.searchParams.set("excludeIngredients", EXCLUDE_PARAM);
 
   const res = await fetch(url.toString());
 
@@ -110,9 +114,12 @@ export async function searchRecipes(
     instructions: toInstructions(r.analyzedInstructions),
   }));
 
+  // Second line of defence: excludeIngredients misses pork named only in the
+  // title, or tagged loosely, so drop anything that still looks porky.
+  const clean = mapped.filter((r) => !hasPork(r));
+
   // instructionsRequired isn't airtight -- a few results still come back with
   // no method. Keep them, but show the complete ones first.
-  return mapped.sort(
-    (a, b) => Number(b.instructions.length > 0) - Number(a.instructions.length > 0),
-  );
+  clean.sort((a, b) => Number(b.instructions.length > 0) - Number(a.instructions.length > 0));
+  return { recipes: clean, porkHidden: mapped.length - clean.length };
 }

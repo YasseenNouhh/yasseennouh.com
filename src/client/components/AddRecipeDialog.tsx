@@ -21,6 +21,7 @@ export function AddRecipeDialog({ onClose, onSaved }: Props) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState<RecipeCandidate[] | null>(null);
+  const [porkHidden, setPorkHidden] = useState(0);
   const [chosen, setChosen] = useState<RecipeCandidate | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +34,16 @@ export function AddRecipeDialog({ onClose, onSaved }: Props) {
     setError(null);
     setCandidates(null);
     try {
-      const { candidates } = await api.search(query.trim());
+      const { candidates, pork_hidden } = await api.search(query.trim());
       setCandidates(candidates);
-      if (!candidates.length) setError(`Nothing found for "${query.trim()}". Try a simpler name.`);
+      setPorkHidden(pork_hidden ?? 0);
+      if (!candidates.length) {
+        setError(
+          pork_hidden
+            ? `Every result for "${query.trim()}" contained pork, so none are shown.`
+            : `Nothing found for "${query.trim()}". Try a simpler name.`,
+        );
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Search failed.");
     } finally {
@@ -98,6 +106,12 @@ export function AddRecipeDialog({ onClose, onSaved }: Props) {
             autoProgressDuration={2600}
             tips={SEARCH_TIPS}
           />
+        )}
+
+        {!chosen && !searching && porkHidden > 0 && candidates && candidates.length > 0 && (
+          <div className="notice">
+            {porkHidden} pork {porkHidden === 1 ? "recipe" : "recipes"} hidden.
+          </div>
         )}
 
         {!chosen && !searching && candidates && candidates.length > 0 && (

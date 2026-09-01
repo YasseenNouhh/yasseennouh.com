@@ -257,6 +257,84 @@ describe("spinning", () => {
   });
 });
 
+describe("pork", () => {
+  it("refuses to save a recipe with pork in the title", async () => {
+    const { status } = await api("/api/admin/recipes", {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({ title: "Slow Roast Pork Belly", ingredients: [] }),
+    });
+    expect(status).toBe(422);
+  });
+
+  it("refuses to save a recipe with pork in an ingredient", async () => {
+    const { status } = await api("/api/admin/recipes", {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({
+        title: "Perfectly Innocent Pasta",
+        ingredients: [{ name: "pancetta", original: "100g pancetta" }],
+      }),
+    });
+    expect(status).toBe(422);
+  });
+
+  it("still saves recipes that merely look porky", async () => {
+    const id = await makeRecipe({
+      title: "Hamburger with Graham Crumb",
+      ingredients: [{ name: "graham crackers", amount: 1, unit: "", original: "graham crackers" }],
+    });
+    const { status } = await api(`/api/recipes/${id}`);
+    expect(status).toBe(200);
+  });
+});
+
+describe("renaming", () => {
+  it("renames a recipe", async () => {
+    const id = await makeRecipe({ title: "Original Name" });
+
+    const patch = await api(`/api/admin/recipes/${id}`, {
+      method: "PATCH",
+      headers: admin,
+      body: JSON.stringify({ title: "  A Better Name  " }),
+    });
+    expect(patch.status).toBe(200);
+
+    const { body } = await api(`/api/recipes/${id}`);
+    expect(body.recipe.title).toBe("A Better Name");
+  });
+
+  it("rejects an empty name", async () => {
+    const id = await makeRecipe();
+    const { status } = await api(`/api/admin/recipes/${id}`, {
+      method: "PATCH",
+      headers: admin,
+      body: JSON.stringify({ title: "   " }),
+    });
+    expect(status).toBe(400);
+  });
+
+  it("rejects renaming something to a pork dish", async () => {
+    const id = await makeRecipe();
+    const { status } = await api(`/api/admin/recipes/${id}`, {
+      method: "PATCH",
+      headers: admin,
+      body: JSON.stringify({ title: "Bacon Sandwich" }),
+    });
+    expect(status).toBe(422);
+  });
+
+  it("needs the admin key to rename", async () => {
+    const id = await makeRecipe();
+    const { status } = await api(`/api/admin/recipes/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: "Hacked" }),
+    });
+    expect(status).toBe(401);
+  });
+});
+
 describe("search", () => {
   it("needs a query", async () => {
     const { status } = await api("/api/admin/search", { headers: admin });
@@ -268,6 +346,13 @@ describe("search", () => {
     if (status === 429) return; // daily quota exhausted; not a code failure
     expect(status).toBe(200);
     expect(body.candidates.length).toBeGreaterThan(0);
+    expect(typeof body.pork_hidden).toBe("number");
+
+    // Nothing porky should survive to the client.
+    for (const c of body.candidates) {
+      const text = `${c.title} ${c.ingredients.map((i: { original: string }) => i.original).join(" ")}`;
+      expect(text).not.toMatch(/(pork|bacon|ham|pancetta|chorizo|prosciutto)/i);
+    }
 
     const first = body.candidates[0];
     expect(first).toHaveProperty("spoonacular_id");

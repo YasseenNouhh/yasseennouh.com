@@ -22,7 +22,12 @@ Deployed on Cloudflare Workers + D1 at `kitchen.yasseennouh.com`.
 - **Add** — type a dish name, get ten real recipes with photo, time, servings
   and full method; pick one and it's saved. One API call covers both the
   previews and the saved payload, so saving costs no extra quota.
-- **Remove** — delete from the recipe modal. Tags and spin history cascade.
+- **Remove / rename** — delete or rename from the recipe modal, alongside
+  cook's notes and tags.
+- **No pork** — enforced in three places: Spoonacular is asked to exclude it,
+  every search result is re-checked, and saving or renaming to a pork dish is
+  refused. Existing rows are filtered on read too, so widening the term list
+  takes effect immediately with no migration.
 - **Tags** — spin within a mood (`quick`, `veggie`, `comfort`, …).
 - **Log** — every spin recorded; stats for most-spun, this month, and what you
   actually eat by tag.
@@ -60,15 +65,16 @@ npm run dev:server     # terminal 1: builds the client, serves on :8787
 npm test               # terminal 2: API tests, then browser tests
 ```
 
-- `npm run test:api` (vitest, 22 tests) -- auth on every admin route, recipe
+- `npm run test:api` (vitest, 60 tests -- 29 API, 31 pork matcher) -- auth on every admin route, recipe
   CRUD, duplicate rejection, tag creation and replacement, cascade delete,
   cooldown behaviour including the small-pool relaxation, history, stats, and
   JSON 404s for unknown API paths.
-- `npm run test:ui` (Playwright/Chromium, 11 tests) -- boot and loading screen,
+- `npm run test:ui` (Playwright/Chromium, 13 tests) -- boot and loading screen,
   the hub photo, spinning (asserting the announced dish **is** the slice under
   the pointer), spin-again, COOK IT with the shopping list, the unlock dialog
   with a wrong and a right key, add-a-recipe end to end through Spoonacular,
-  tag filtering, and every tab rendering. Any uncaught page error fails the test.
+  tag filtering, renaming, and every tab rendering. Any uncaught page error
+  fails the test.
 
 Search tests skip themselves rather than fail if the daily Spoonacular quota is
 exhausted, since that is not a code failure.
@@ -117,7 +123,8 @@ src/
   shared/      types.ts  (shared between both)
   client/sprites/  tilemap.png + derived seamless ground tiles
 art/           the raw Kenney download (not deployed)
-scripts/       screenshot.mjs, for eyeballing the UI
+scripts/       make-sprites.cjs (hand-drawn sprites), pnglib.cjs,
+               screenshot.mjs (for eyeballing the UI)
 schema.sql     tables + seed tags
 ```
 
@@ -130,13 +137,26 @@ schema.sql     tables + seed tags
   Candidates are resampled on every spin, so the full book still gets used.
 - **Art** is Kenney's *Pixel Platformer* pack (CC0). The full download lives in
   `art/pixel-platformer/` and is **not** served -- only the 6KB sprite sheet is
-  imported (`src/client/sprites/tilemap.png`), so Vite ships exactly one image.
+  imported (`src/client/sprites/tilemap.png`), so Vite ships one image.
   `components/Sprite.tsx` addresses tiles by index in the 20x9 grid.
-  The two ground tiles are pre-processed: Kenney's terrain blocks carry a 2px
+
+  Many of Kenney's objects span several tiles -- a cloud is three wide, a tree
+  three tall, a hedge up to 3x3. Rendering one tile of those is what makes
+  sprites look sliced, so use `Composite` with the grids in `G`, not `Sprite`.
+
+  The two ground tiles are pre-processed: Kenney's terrain blocks carry a **2px**
   dark outline on all four sides, which tiles into a visible brick grid, so
   `grass.png` and `dirt.png` have that border stripped (the grass keeps its top
   edge, which is the ground surface line).
-  The wheel, pointer and sign are still drawn in SVG/CSS so they scale with
+
+- **The pack has no dog, birds, sun or greenhouse.** Its character sheet is
+  space-themed (astronauts, robots, bat-drones) and its background sheet is four
+  parallax panels. So the sun, the birds and Loki's walk cycle are hand-drawn in
+  `scripts/make-sprites.cjs` as ASCII pixel art in the pack's palette; run
+  `node scripts/make-sprites.cjs` to regenerate them after editing.
+  A greenhouse would need a different pack -- Kenney's *Tiny Town* has buildings.
+
+- The wheel, pointer and sign are still drawn in SVG/CSS so they scale with
   their text.
 - The hub photo is loaded from `/assets/loki.png`; if it's absent the wheel
   shows a placeholder medallion instead.

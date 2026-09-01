@@ -722,17 +722,22 @@ textarea.input {
   background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 58%, #f0d5a0 100%);
 }
 
-.sun {
+/* Frame strips advance with steps() so frames snap instead of sliding. */
+@keyframes sprite-frames {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: calc(-1 * var(--frames-width)) 0;
+  }
+}
+
+.sun-sprite {
   position: absolute;
-  top: 7%;
-  right: 10%;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--gold);
-  box-shadow:
-    0 0 0 6px #f2c76b,
-    0 0 0 16px rgba(232, 176, 75, 0.3);
+  top: 6%;
+  right: 8%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 18px rgba(242, 178, 62, 0.55));
   animation: bob 7s steps(7) infinite alternate;
 }
 
@@ -744,7 +749,15 @@ textarea.input {
 
 .cloud-sprite {
   position: absolute;
-  opacity: 0.9;
+  opacity: 0.92;
+  animation-name: drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.bird-flight {
+  position: absolute;
+  display: block;
   animation-name: drift;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
@@ -785,6 +798,38 @@ textarea.input {
   background-repeat: repeat;
   background-size: 72px 72px;
   image-rendering: pixelated;
+}
+
+.scenery {
+  position: absolute;
+  line-height: 0;
+  z-index: 1;
+}
+
+/* Loki does laps, turning at each end. */
+.dog-walk {
+  position: absolute;
+  left: 0;
+  z-index: 2;
+  animation: dog-lap 54s linear infinite;
+}
+
+@keyframes dog-lap {
+  0% {
+    transform: translateX(-8vw) scaleX(1);
+  }
+  48% {
+    transform: translateX(102vw) scaleX(1);
+  }
+  50% {
+    transform: translateX(102vw) scaleX(-1);
+  }
+  98% {
+    transform: translateX(-8vw) scaleX(-1);
+  }
+  100% {
+    transform: translateX(-8vw) scaleX(1);
+  }
 }
 
 /* --------------------------------------------------------------- footer */
@@ -831,8 +876,10 @@ textarea.input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sun,
-  .cloud {
+  .sun-sprite,
+  .cloud-sprite,
+  .bird-flight,
+  .dog-walk {
     animation: none;
   }
   .wheel-rotor {
