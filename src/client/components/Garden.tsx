@@ -48,7 +48,7 @@ const SCENERY: Item[] = [
   // the greenhouse, well clear of the wheel
   { at: 11, structure: "greenhouse", sheet: "farm", scale: 2 },
 
-  { at: 20, structure: "autumnTree", sheet: "farm", scale: 2 },
+  { at: 20, structure: "autumnBigTree", sheet: "farm", scale: 2 },
 
   // fenced vegetable patch
   { at: 24, structure: "fence", sheet: "farm", scale: 2 },

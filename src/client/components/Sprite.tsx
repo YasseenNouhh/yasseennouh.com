@@ -67,13 +67,19 @@ export const G = {
     [null, 117, null],
     [null, 137, null],
   ],
+  /** Farm: wide autumn birch -- branch caps over a solid canopy row, fork, trunk. */
+  autumnBigTree: [
+    [74, 77, 78],
+    [null, 76, null],
+    [null, 109, null],
+  ],
+  /** Farm: compact autumn birch. Top is 76 (foliage with the trunk fork at the
+   *  bottom) -- not 77, which is a solid 2x2 canopy interior and reads as a
+   *  floating orange block when used alone. Trunk is 109, not 93 -- 93 has
+   *  side-branch nubs meant for wider assemblies; 109 lines up cleanly below 76. */
+  autumnTree: [[76], [109]],
   /** Low wide hedge. */
   lowHedge: [[77, 78, 79]],
-  /** Farm: compact autumn birch. Canopy tile 77 has the trunk fork drawn in,
-   *  so it reads as a tree at one tile wide. Trunk is 109, not 93 -- 93 looks
-   *  like an interchangeable middle segment but its bark border doesn't line
-   *  up against the canopy OR against a repeat of itself; 109 does both. */
-  autumnTree: [[77], [109]],
   /** Three-tile-wide cloud. */
   cloud: [[153, 154, 155]],
   /** Farm: gabled greenhouse with a door, 4x4. */
