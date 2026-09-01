@@ -267,7 +267,7 @@ h3 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
 }
 
 .filters {
@@ -276,6 +276,8 @@ h3 {
   flex-wrap: wrap;
   justify-content: center;
   max-width: 640px;
+  position: relative;
+  z-index: 2;
 }
 
 .chip {
@@ -296,8 +298,10 @@ h3 {
 
 .wheel-wrap {
   position: relative;
+  z-index: 1;
   width: min(560px, 92vw);
   aspect-ratio: 1;
+  margin-top: 10px;
   display: grid;
   place-items: center;
   /* Shadow lives here, not on the SVG. filter: drop-shadow on the same
@@ -364,7 +368,7 @@ h3 {
 
 .pointer {
   position: absolute;
-  top: -14px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
