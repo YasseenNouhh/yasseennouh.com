@@ -69,10 +69,11 @@ export const G = {
   ],
   /** Low wide hedge. */
   lowHedge: [[77, 78, 79]],
-  /** Farm: compact autumn birch. Its canopy tile has the trunk fork drawn in,
-   *  so it reads as a tree at one tile wide -- the wider canopy bars above it
-   *  on the sheet are standalone strips and don't stack. */
-  autumnTree: [[77], [93], [109]],
+  /** Farm: compact autumn birch. Canopy tile 77 has the trunk fork drawn in,
+   *  so it reads as a tree at one tile wide. Trunk is 109, not 93 -- 93 looks
+   *  like an interchangeable middle segment but its bark border doesn't line
+   *  up against the canopy OR against a repeat of itself; 109 does both. */
+  autumnTree: [[77], [109]],
   /** Three-tile-wide cloud. */
   cloud: [[153, 154, 155]],
   /** Farm: gabled greenhouse with a door, 4x4. */

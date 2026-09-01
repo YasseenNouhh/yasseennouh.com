@@ -152,8 +152,12 @@ schema.sql     tables + seed tags
   - `16` is a standalone bush, *not* the cap of a hedge column -- stacking it
     over `76` leaves a visible gap.
   - The farm pack's wide orange canopy bars (`60`-`63`) are standalone strips
-    and don't stack onto anything; the compact `autumnTree` works because tile
-    `77` has the trunk fork drawn into it.
+    and don't stack onto anything.
+  - Even among tiles that visually look interchangeable, they aren't: the farm
+    pack's trunk tile `93` looks like a middle segment but its bark border
+    doesn't line up against the canopy above it OR against a repeat of
+    itself -- only `109` does both. `autumnTree` uses canopy `77` + trunk
+    `109`; `93` isn't used anywhere.
 
   When adding scenery, assemble a candidate grid and render it to a PNG before
   wiring it up -- guessing from the sheet overview gets it wrong.
