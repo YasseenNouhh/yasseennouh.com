@@ -99,6 +99,13 @@ export function App() {
     return () => window.clearTimeout(t);
   }, []);
 
+  /* Switching tabs unmounts the Wheel, whose effect cleanup clears the landing
+     timer. onLanded then never runs, spinning stays true, and SPIN stays
+     disabled until a full reload. Treat leaving the spin view as cancelling. */
+  useEffect(() => {
+    if (view !== "spin") setSpinning(false);
+  }, [view]);
+
   async function spin() {
     setResult(null);
     setError(null);

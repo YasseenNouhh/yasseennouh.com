@@ -109,6 +109,29 @@ test("spinning lands on the slice under the pointer and logs it", async ({ page 
   for (const id of ids) await deleteRecipe(id);
 });
 
+test("leaving mid-spin does not leave the wheel stuck", async ({ page }) => {
+  const ids = [];
+  for (let i = 0; i < 4; i++) ids.push(await seedRecipe(`Stuck Dish ${i}`, ["stucktest"]));
+
+  await page.goto(BASE);
+  await page.locator(".wheel-svg").waitFor({ timeout: 10_000 });
+  await page.getByRole("button", { name: "stucktest", exact: true }).click();
+
+  await page.getByRole("button", { name: "SPIN!" }).click();
+  await expect(page.getByRole("button", { name: "SPINNING…" })).toBeVisible();
+
+  // Switching tabs unmounts the Wheel and used to clear its landing timer
+  // without resetting App spinning, so SPIN stayed disabled forever.
+  await page.getByRole("tab", { name: "LOG" }).click();
+  await expect(page.getByRole("heading", { name: "Dinner log" })).toBeVisible();
+  await page.getByRole("tab", { name: "SPIN" }).click();
+
+  await expect(page.getByRole("button", { name: "SPIN!" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "SPIN!" })).toBeEnabled();
+
+  for (const id of ids) await deleteRecipe(id);
+});
+
 test("spin again reshuffles and still resolves", async ({ page }) => {
   const ids = [];
   for (let i = 0; i < 6; i++) ids.push(await seedRecipe(`Again Dish ${i}`, ["againtest"]));

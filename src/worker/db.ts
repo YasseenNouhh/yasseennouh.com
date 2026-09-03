@@ -48,6 +48,21 @@ export function rowToRecipe(row: RecipeRow, tags: Tag[] = []): Recipe {
   };
 }
 
+/**
+ * D1 rejects a statement with more than 100 bound parameters
+ * (`too many SQL variables`). tagsForRecipes used to bind every recipe id in
+ * one IN (...), so GET /api/recipes 500'd once the book grew past that, and
+ * the client treated the error as an empty pantry.
+ */
+export const D1_MAX_BOUND_PARAMS = 100;
+
+export function chunkIds<T>(ids: readonly T[], size = D1_MAX_BOUND_PARAMS): T[][] {
+  if (size < 1) throw new Error("chunk size must be at least 1");
+  const chunks: T[][] = [];
+  for (let i = 0; i < ids.length; i += size) chunks.push(ids.slice(i, i + size));
+  return chunks;
+}
+
 /** One extra query beats N+1: fetch every tag for a set of recipes at once. */
 export async function tagsForRecipes(
   db: D1Database,
@@ -56,22 +71,26 @@ export async function tagsForRecipes(
   const map = new Map<number, Tag[]>();
   if (!recipeIds.length) return map;
 
-  const placeholders = recipeIds.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT rt.recipe_id, t.id, t.name, t.color
-         FROM recipe_tags rt
-         JOIN tags t ON t.id = rt.tag_id
-        WHERE rt.recipe_id IN (${placeholders})
-        ORDER BY t.name`,
-    )
-    .bind(...recipeIds)
-    .all<{ recipe_id: number; id: number; name: string; color: string }>();
+  type TagRow = { recipe_id: number; id: number; name: string; color: string };
 
-  for (const r of results ?? []) {
-    const list = map.get(r.recipe_id) ?? [];
-    list.push({ id: r.id, name: r.name, color: r.color });
-    map.set(r.recipe_id, list);
+  for (const chunk of chunkIds(recipeIds)) {
+    const placeholders = chunk.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(
+        `SELECT rt.recipe_id, t.id, t.name, t.color
+           FROM recipe_tags rt
+           JOIN tags t ON t.id = rt.tag_id
+          WHERE rt.recipe_id IN (${placeholders})
+          ORDER BY t.name`,
+      )
+      .bind(...chunk)
+      .all<TagRow>();
+
+    for (const r of results ?? []) {
+      const list = map.get(r.recipe_id) ?? [];
+      list.push({ id: r.id, name: r.name, color: r.color });
+      map.set(r.recipe_id, list);
+    }
   }
   return map;
 }
