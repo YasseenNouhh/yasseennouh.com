@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Recipe, SpinCandidate, Tag } from "../shared/types";
 import { api, ApiError, setAdminKey } from "./api";
+import { createFetchGeneration } from "./fetchGeneration";
 import { Garden } from "./components/Garden";
 import { Wheel } from "./components/Wheel";
 import { RecipeModal } from "./components/RecipeModal";
@@ -54,23 +55,37 @@ export function App() {
       .catch(() => setIsAdmin(false));
   }, []);
 
+  // Overlapping tag/SPIN fetches complete out of order; only the latest applies.
+  const recipeFetches = useRef(createFetchGeneration()).current;
+  const candidateFetches = useRef(createFetchGeneration()).current;
+
   const loadTags = useCallback(() => {
     void api.tags().then((r) => setTags(r.tags));
   }, []);
 
   const loadRecipes = useCallback(() => {
+    const token = recipeFetches.begin();
     void api
       .recipes(activeTag ?? undefined)
-      .then((r) => setRecipes(r.recipes))
-      .catch(() => setRecipes([]));
-  }, [activeTag]);
+      .then((r) => {
+        if (!recipeFetches.isLatest(token)) return;
+        setRecipes(r.recipes);
+      })
+      .catch(() => {
+        if (!recipeFetches.isLatest(token)) return;
+        setRecipes([]);
+      });
+  }, [activeTag, recipeFetches]);
 
   const loadCandidates = useCallback(async () => {
+    const token = candidateFetches.begin();
     const r = await api.spinCandidates(activeTag, COOLDOWN_DAYS);
-    setCandidates(r.candidates);
-    setPool({ total: r.pool, cooled: r.cooled });
+    if (candidateFetches.isLatest(token)) {
+      setCandidates(r.candidates);
+      setPool({ total: r.pool, cooled: r.cooled });
+    }
     return r.candidates;
-  }, [activeTag]);
+  }, [activeTag, candidateFetches]);
 
   useEffect(() => {
     loadTags();
@@ -88,9 +103,17 @@ export function App() {
 
   useEffect(() => {
     if (busy.current) return;
+    let cancelled = false;
     void loadCandidates()
-      .catch(() => setCandidates([]))
+      .catch(() => {
+        // A newer click or an in-flight spin owns the wheel now.
+        if (cancelled || busy.current) return;
+        setCandidates([]);
+      })
       .finally(() => setDataReady(true));
+    return () => {
+      cancelled = true;
+    };
   }, [loadCandidates, refreshToken]);
 
   /* Hold the loading screen for a beat so it reads as a scene, not a flash. */
