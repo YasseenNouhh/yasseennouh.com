@@ -132,6 +132,24 @@ test("leaving mid-spin does not leave the wheel stuck", async ({ page }) => {
   for (const id of ids) await deleteRecipe(id);
 });
 
+test("double-clicking SPIN still lands instead of hanging", async ({ page }) => {
+  const ids = [];
+  for (let i = 0; i < 4; i++) ids.push(await seedRecipe(`Dbl Dish ${i}`, ["dbltest"]));
+
+  await page.goto(BASE);
+  await page.locator(".wheel-svg").waitFor({ timeout: 10_000 });
+  await page.getByRole("button", { name: "dbltest", exact: true }).click();
+
+  // Two clicks before React can disable the button used to bump spinToken
+  // twice: the second effect cleared the first landing timer and then
+  // bailed because spinning was already true, so onLanded never ran.
+  await page.getByRole("button", { name: "SPIN!" }).dblclick();
+  await expect(page.locator(".result__title")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "SPIN AGAIN" })).toBeVisible();
+
+  for (const id of ids) await deleteRecipe(id);
+});
+
 test("spin again reshuffles and still resolves", async ({ page }) => {
   const ids = [];
   for (let i = 0; i < 6; i++) ids.push(await seedRecipe(`Again Dish ${i}`, ["againtest"]));

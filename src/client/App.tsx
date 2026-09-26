@@ -85,6 +85,10 @@ export function App() {
      from under the pointer -- so hold still while a result is on screen. */
   const busy = useRef(false);
   busy.current = spinning || result !== null;
+  // React state updates are async; a double-click would fire spin() twice
+  // before `spinning` is true and bump spinToken while the first landing
+  // timer is already armed.
+  const spinInFlight = useRef(false);
 
   useEffect(() => {
     if (busy.current) return;
@@ -103,10 +107,15 @@ export function App() {
      timer. onLanded then never runs, spinning stays true, and SPIN stays
      disabled until a full reload. Treat leaving the spin view as cancelling. */
   useEffect(() => {
-    if (view !== "spin") setSpinning(false);
+    if (view !== "spin") {
+      spinInFlight.current = false;
+      setSpinning(false);
+    }
   }, [view]);
 
   async function spin() {
+    if (spinInFlight.current) return;
+    spinInFlight.current = true;
     setResult(null);
     setError(null);
     setSpinning(true);
@@ -114,17 +123,20 @@ export function App() {
       // Reshuffle first so consecutive spins don't show the same twelve.
       const fresh = await loadCandidates();
       if (!fresh.length) {
+        spinInFlight.current = false;
         setSpinning(false);
         return;
       }
       setSpinToken((t) => t + 1);
     } catch (err) {
+      spinInFlight.current = false;
       setSpinning(false);
       setError(err instanceof ApiError ? err.message : "Could not reach the kitchen.");
     }
   }
 
   async function onLanded(candidate: SpinCandidate) {
+    spinInFlight.current = false;
     setSpinning(false);
     setResult(candidate);
     try {

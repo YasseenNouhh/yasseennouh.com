@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { SpinCandidate } from "../../shared/types";
+import { shouldStartSpin } from "./wheelSpin";
 
 const SLICE_COLORS = [
   "#c4614f",
@@ -83,10 +84,8 @@ export function Wheel({ candidates, hubImage, onLanded, spinToken }: Props) {
     // Only spin when the parent bumps the token (SPIN / SPIN AGAIN). A
     // firstRender flag breaks under StrictMode, which re-runs effects on mount
     // and would treat the second pass as a real spin.
-    if (spinToken === seenToken.current) return;
+    if (!shouldStartSpin(spinToken, seenToken.current, n)) return;
     seenToken.current = spinToken;
-    if (spinToken === 0) return;
-    if (!n || spinning) return;
 
     const winner = Math.floor(Math.random() * n);
     const sliceCentre = winner * step + step / 2;
