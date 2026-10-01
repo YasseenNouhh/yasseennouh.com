@@ -42,11 +42,19 @@ export const PORK_TERMS = [
   "chitterlings",
   "bologna",
   "spam",
+  "porchetta",
+  "nduja",
 ] as const;
 
 /* One pass, word-boundaried, case-insensitive. \b doesn't play well with
-   hyphens in some sources, so treat any non-letter as a boundary. */
-const PORK_RE = new RegExp(`(^|[^a-z])(${PORK_TERMS.join("|")})([^a-z]|$)`, "i");
+   hyphens in some sources, so treat any non-letter as a boundary.
+   `pork` itself is a prefix: Spoonacular titles often concatenate it
+   ("Ranch Porkchops", "porkloin") and the title re-check exists specifically
+   for recipes whose ingredients weren't tagged as pork. A full-word match
+   would let those through. Keep the literal "pork" in PORK_TERMS so
+   excludeIngredients still sends a real ingredient name, not a regex. */
+const PORK_ALTERNATION = PORK_TERMS.map((t) => (t === "pork" ? "pork[a-z]*" : t)).join("|");
+const PORK_RE = new RegExp(`(^|[^a-z])(${PORK_ALTERNATION})([^a-z]|$)`, "i");
 
 /** True when the text mentions pork in any of its usual disguises. */
 export function textHasPork(text: string | null | undefined): boolean {

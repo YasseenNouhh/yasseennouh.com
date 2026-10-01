@@ -24,6 +24,11 @@ describe("textHasPork", () => {
     "lardons",
     "gammon steak",
     "spam",
+    "Ranch Porkchops",
+    "porkchops",
+    "porkloin",
+    "porchetta",
+    "nduja",
   ])("flags %j", (text) => {
     expect(textHasPork(text)).toBe(true);
   });
@@ -39,6 +44,7 @@ describe("textHasPork", () => {
     "champagne",
     "shampoo",
     "hamper",
+    "spork",
     "",
   ])("does not flag %j", (text) => {
     expect(textHasPork(text)).toBe(false);
@@ -54,6 +60,17 @@ describe("hasPork", () => {
   it("catches pork named only in the title", () => {
     expect(
       hasPork({ title: "Pulled Pork Tacos", ingredients: [{ name: "tortilla" }] }),
+    ).toBe(true);
+  });
+
+  it("catches concatenated pork titles Spoonacular often uses", () => {
+    // excludeIngredients misses pork named only in the title; the old full-word
+    // `pork` term also missed "Porkchops" because the next letter is still [a-z].
+    expect(
+      hasPork({ title: "Instant Pot Porkchops", ingredients: [{ name: "chops" }] }),
+    ).toBe(true);
+    expect(
+      hasPork({ title: "Porchetta", ingredients: [{ name: "fennel" }] }),
     ).toBe(true);
   });
 
