@@ -1,11 +1,12 @@
 /**
  * Pork exclusion.
  *
- * Spoonacular's own diet flags don't cover this, so we match on ingredient
- * names and titles ourselves. For a dietary restriction a false positive
- * (hiding a chicken sausage) is a much cheaper mistake than a false negative
- * (serving pork), so the list leans inclusive -- notably `sausage`, which is
- * pork far more often than not.
+ * Spoonacular's own diet flags don't cover this, so we match on the recipe
+ * text ourselves — title, summary, ingredient lines, and method steps.
+ * Garnish-only bacon often lives in the instructions while ingredients stay
+ * clean; a false positive (hiding a chicken sausage) is a much cheaper
+ * mistake than a false negative (serving pork), so the list leans inclusive
+ * -- notably `sausage`, which is pork far more often than not.
  *
  * Terms are matched on word boundaries: `ham` must not fire on "graham" or
  * "hamburger", and `lard` must not fire on "larder".
@@ -57,13 +58,25 @@ export function textHasPork(text: string | null | undefined): boolean {
 interface PorkCheckable {
   title?: string | null;
   ingredients?: { name?: string; original?: string }[] | null;
+  instructions?: string[] | string | null;
+  summary?: string | null;
 }
 
-/** Checks a recipe's title and every ingredient line. */
+/** Checks every field a diner actually sees: title, summary, ingredients, method. */
 export function hasPork(recipe: PorkCheckable): boolean {
-  if (textHasPork(recipe.title)) return true;
-  for (const ing of recipe.ingredients ?? []) {
-    if (textHasPork(ing.name) || textHasPork(ing.original)) return true;
+  if (textHasPork(recipe.title) || textHasPork(recipe.summary)) return true;
+  if (Array.isArray(recipe.ingredients)) {
+    for (const ing of recipe.ingredients) {
+      if (textHasPork(ing?.name) || textHasPork(ing?.original)) return true;
+    }
+  }
+  if (typeof recipe.instructions === "string") {
+    return textHasPork(recipe.instructions);
+  }
+  if (Array.isArray(recipe.instructions)) {
+    for (const step of recipe.instructions) {
+      if (textHasPork(step)) return true;
+    }
   }
   return false;
 }

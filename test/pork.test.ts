@@ -88,4 +88,29 @@ describe("hasPork", () => {
     expect(hasPork({ title: "Toast" })).toBe(false);
     expect(hasPork({ title: "Toast", ingredients: null })).toBe(false);
   });
+
+  it("catches pork named only in the method", () => {
+    expect(
+      hasPork({
+        title: "Loaded Potato",
+        ingredients: [{ name: "potato", original: "2 baking potatoes" }],
+        instructions: ["Bake until soft.", "Top with crispy bacon bits."],
+      }),
+    ).toBe(true);
+  });
+
+  it("catches pork named only in the summary", () => {
+    expect(
+      hasPork({
+        title: "Sunday Roast",
+        ingredients: [{ name: "potato", original: "roast potatoes" }],
+        summary: "A hearty pork stew with crackling.",
+      }),
+    ).toBe(true);
+  });
+
+  it("does not throw when ingredients JSON was not an array", () => {
+    expect(hasPork({ title: "Toast", ingredients: 123 as never })).toBe(false);
+    expect(hasPork({ title: "Bacon Sandwich", ingredients: {} as never })).toBe(true);
+  });
 });
