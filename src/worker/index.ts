@@ -79,7 +79,11 @@ app.get("/api/recipes/:id", async (c) => {
   if (!row) return c.json({ error: "No such recipe" }, 404);
 
   const tagMap = await tagsForRecipes(c.env.DB, [id]);
-  return c.json({ recipe: rowToRecipe(row, tagMap.get(id) ?? []) });
+  const recipe = rowToRecipe(row, tagMap.get(id) ?? []);
+  // Same read-time filter as the list: pork that slipped in (or whose terms
+  // were added later) must not be cookable by id either.
+  if (hasPork(recipe)) return c.json({ error: "No such recipe" }, 404);
+  return c.json({ recipe });
 });
 
 /* ------------------------------------------------------------------- spin */
@@ -95,30 +99,46 @@ app.get("/api/spin/candidates", async (c) => {
 
   const sql = tag
     ? `SELECT r.id, r.title, r.image_url, r.ready_minutes, r.ingredients,
-              MAX(s.spun_at) AS last_spun_at
+              r.instructions, r.summary, MAX(s.spun_at) AS last_spun_at
          FROM recipes r
          JOIN recipe_tags rt ON rt.recipe_id = r.id
          JOIN tags t ON t.id = rt.tag_id AND t.name = ?
          LEFT JOIN spins s ON s.recipe_id = r.id
         GROUP BY r.id`
     : `SELECT r.id, r.title, r.image_url, r.ready_minutes, r.ingredients,
-              MAX(s.spun_at) AS last_spun_at
+              r.instructions, r.summary, MAX(s.spun_at) AS last_spun_at
          FROM recipes r
          LEFT JOIN spins s ON s.recipe_id = r.id
         GROUP BY r.id`;
 
   const stmt = tag ? c.env.DB.prepare(sql).bind(tag) : c.env.DB.prepare(sql);
   const { results } = await stmt.all<
-    SpinCandidate & { last_spun_at: string | null; ingredients: string }
+    SpinCandidate & {
+      last_spun_at: string | null;
+      ingredients: string;
+      instructions: string;
+      summary: string | null;
+    }
   >();
   const all = (results ?? []).filter((r) => {
     let ingredients: { name?: string; original?: string }[] = [];
+    let instructions: string[] | string = [];
     try {
       ingredients = JSON.parse(r.ingredients ?? "[]");
     } catch {
-      /* malformed rows just get checked on title alone */
+      /* malformed rows still get checked on the other fields */
     }
-    return !hasPork({ title: r.title, ingredients });
+    try {
+      instructions = JSON.parse(r.instructions ?? "[]");
+    } catch {
+      /* same */
+    }
+    return !hasPork({
+      title: r.title,
+      ingredients,
+      instructions,
+      summary: r.summary,
+    });
   });
 
   if (!all.length) return c.json({ candidates: [], pool: 0, cooled: 0 });
@@ -273,7 +293,14 @@ app.post("/api/admin/recipes", async (c) => {
     .catch(() => null);
   if (!body?.title) return c.json({ error: "A recipe needs a name." }, 400);
 
-  if (hasPork({ title: body.title, ingredients: body.ingredients })) {
+  if (
+    hasPork({
+      title: body.title,
+      ingredients: body.ingredients,
+      instructions: body.instructions,
+      summary: body.summary,
+    })
+  ) {
     return c.json({ error: "That recipe contains pork, so it can't be saved." }, 422);
   }
 

@@ -115,7 +115,8 @@ export async function searchRecipes(
   }));
 
   // Second line of defence: excludeIngredients misses pork named only in the
-  // title, or tagged loosely, so drop anything that still looks porky.
+  // title, method, or summary, or tagged loosely, so drop anything that still
+  // looks porky.
   const clean = mapped.filter((r) => !hasPork(r));
 
   // instructionsRequired isn't airtight -- a few results still come back with

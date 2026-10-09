@@ -287,6 +287,32 @@ describe("pork", () => {
     const { status } = await api(`/api/recipes/${id}`);
     expect(status).toBe(200);
   });
+
+  it("refuses to save a recipe with pork only in the method", async () => {
+    const { status } = await api("/api/admin/recipes", {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({
+        title: "Loaded Potato",
+        ingredients: [{ name: "potato", original: "2 baking potatoes" }],
+        instructions: ["Bake until soft.", "Top with crispy bacon bits."],
+      }),
+    });
+    expect(status).toBe(422);
+  });
+
+  it("refuses to save a recipe with pork only in the summary", async () => {
+    const { status } = await api("/api/admin/recipes", {
+      method: "POST",
+      headers: admin,
+      body: JSON.stringify({
+        title: "Sunday Roast",
+        ingredients: [{ name: "potato", original: "roast potatoes" }],
+        summary: "A hearty pork stew with crackling.",
+      }),
+    });
+    expect(status).toBe(422);
+  });
 });
 
 describe("renaming", () => {
@@ -350,8 +376,13 @@ describe("search", () => {
 
     // Nothing porky should survive to the client.
     for (const c of body.candidates) {
-      const text = `${c.title} ${c.ingredients.map((i: { original: string }) => i.original).join(" ")}`;
-      expect(text).not.toMatch(/(pork|bacon|ham|pancetta|chorizo|prosciutto)/i);
+      const text = [
+        c.title,
+        c.summary,
+        c.ingredients.map((i: { original: string }) => i.original).join(" "),
+        (c.instructions ?? []).join(" "),
+      ].join(" ");
+      expect(text).not.toMatch(/\b(pork|bacon|ham|pancetta|chorizo|prosciutto)\b/i);
     }
 
     const first = body.candidates[0];
