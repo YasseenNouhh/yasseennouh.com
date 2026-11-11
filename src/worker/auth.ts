@@ -98,6 +98,35 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * The README's local-dev example. Anyone who can clone the repo knows it, so
+ * it must never unlock `/api/admin/*` on a reachable hostname — a Worker
+ * deployed with `DEV_ADMIN_KEY=loki-local-dev` would otherwise let a stranger
+ * add or delete every recipe.
+ */
+export const INSECURE_DEV_ADMIN_KEYS = ["loki-local-dev"] as const;
+const INSECURE_DEV_ADMIN_KEY_SET: ReadonlySet<string> = new Set(INSECURE_DEV_ADMIN_KEYS);
+
+export function isLoopbackHost(requestUrl: string): boolean {
+  try {
+    const { hostname } = new URL(requestUrl);
+    return (
+      hostname === "127.0.0.1" ||
+      hostname === "localhost" ||
+      hostname === "::1" ||
+      hostname === "[::1]"
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** False when the configured shared key is the public example and this isn't local wrangler. */
+export function sharedKeyPermitted(expected: string, requestUrl: string): boolean {
+  if (!INSECURE_DEV_ADMIN_KEY_SET.has(expected)) return true;
+  return isLoopbackHost(requestUrl);
+}
+
 export async function isAdmin(req: Request, env: Env): Promise<boolean> {
   if (env.CF_ACCESS_TEAM_DOMAIN && env.CF_ACCESS_AUD) {
     const token =
@@ -112,7 +141,14 @@ export async function isAdmin(req: Request, env: Env): Promise<boolean> {
 
   const provided = req.headers.get("x-admin-key");
   const expected = env.DEV_ADMIN_KEY;
-  if (provided && expected) return safeEqual(provided, expected);
+  if (
+    provided &&
+    expected &&
+    sharedKeyPermitted(expected, req.url) &&
+    safeEqual(provided, expected)
+  ) {
+    return true;
+  }
 
   return false;
 }
